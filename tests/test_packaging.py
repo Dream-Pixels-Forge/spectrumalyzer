@@ -40,3 +40,14 @@ def test_dev_extra_only_has_tooling():
     assert any(r.startswith("pytest") for r in extras)
     assert any(r.startswith("ruff") for r in extras)
     assert all("sentence" not in r for r in extras)
+
+
+def test_mcp_sdk_is_a_base_dependency():
+    deps = _load()["project"]["dependencies"]
+    assert any(d.startswith("mcp") for d in deps), "MCP server ships in the single install"
+
+
+def test_python_floor_covers_mcp_sdk():
+    assert _load()["project"]["requires-python"] == ">=3.10", (
+        "the MCP SDK requires Python 3.10+ — keep the floor in sync"
+    )

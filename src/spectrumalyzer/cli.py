@@ -166,6 +166,16 @@ def build_parser() -> argparse.ArgumentParser:
     p_find.add_argument("--limit", type=int, default=10, help="Max results (default 10)")
     p_find.add_argument("--refresh", action="store_true", help="Re-analyze even if cached")
 
+    # ---- mcp (Model Context Protocol server) -------------------------------
+    sub.add_parser(
+        "mcp",
+        help="Run the MCP server (stdio) — spectrumalyzer as tools for AI agents",
+        description=(
+            "Expose analyze/describe/find/export/report as MCP tools over stdio. "
+            'Register with: {"command": "spectrumalyzer", "args": ["mcp"]}'
+        ),
+    )
+
     return parser
 
 
@@ -422,6 +432,10 @@ def main(argv: list[str] | None = None) -> int:
         return cmd_report(args)
     if args.command == "formats":
         return cmd_formats(args)
+    if args.command == "mcp":
+        from spectrumalyzer.mcp_server import main as mcp_main
+
+        return mcp_main()
     if args.command == "model":
         return cmd_model(args)
     if args.command == "describe":
