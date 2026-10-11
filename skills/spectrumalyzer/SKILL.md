@@ -1,6 +1,6 @@
 ---
 name: spectrumalyzer
-version-note: v0.3.0 — adds local embedding layer (describe / find / --embed)
+version-note: v0.4.0 — single install; embedding built in; weights auto-pull on first use
 description: Audio-reactive analysis toolkit for motion graphics — spectral-flux beat detection, BPM, 6 frequency bands, song sections, and frame-native exports for Remotion, HyperFrames, After Effects, FCPXML and CSV workflows
 ---
 ## Skill Overview
@@ -60,6 +60,7 @@ python3 -c "from spectrumalyzer import analyze; r = analyze('track.mp3', fps=30)
 
 ## Semantic Hearing (v0.3)
 
+- Single install ships the embedding stack; weights auto-pull on first use.
 - `spectrumalyzer model pull` / `model status` — local embedding model at
   ~/.config/spectrumalyzer/embedding (EmbeddingGemma-300m preferred; MiniLM fallback)
 - `spectrumalyzer describe AUDIO` — NL description + mood/energy/flavor/use tags

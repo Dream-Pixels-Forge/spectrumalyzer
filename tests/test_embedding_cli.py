@@ -85,3 +85,45 @@ def test_analyze_without_embed_stays_clean(click_120, tmp_path):
     assert rc == 0
     data = json.loads(out.read_text())
     assert "description" not in data and "tags" not in data
+
+
+def _patch_backend_cls(monkeypatch, load_fn, pull_fn):
+    from spectrumalyzer.embedding import backend as backend_module
+
+    monkeypatch.setattr(backend_module.EmbeddingBackend, "load", staticmethod(load_fn))
+    monkeypatch.setattr(backend_module.EmbeddingBackend, "pull", staticmethod(pull_fn))
+
+
+def test_ensure_backend_auto_pulls_on_first_use(monkeypatch, tmp_path):
+    """With a single install, first describe/find must pull model weights
+    automatically instead of erroring out."""
+    monkeypatch.setenv("SPECTRUMALYZER_HOME", str(tmp_path))
+    calls = {"pull": 0}
+    fake = FakeEmbedder()
+
+    from spectrumalyzer.embedding.backend import EmbeddingNotAvailable
+
+    def flaky_load():
+        if calls["pull"] == 0:
+            raise EmbeddingNotAvailable("no model yet")
+        return fake
+
+    def flaky_pull():
+        calls["pull"] += 1
+        return "fake/model"
+
+    _patch_backend_cls(monkeypatch, flaky_load, flaky_pull)
+
+    backend = cli._ensure_backend()
+    assert calls["pull"] == 1
+    assert backend is fake
+
+
+def test_ensure_backend_returns_existing_without_pull(monkeypatch, tmp_path):
+    monkeypatch.setenv("SPECTRUMALYZER_HOME", str(tmp_path))
+    calls = {"pull": 0}
+    fake = FakeEmbedder()
+
+    _patch_backend_cls(monkeypatch, lambda: fake, lambda: (calls.__setitem__("pull", 1), "x")[1])
+    cli._ensure_backend()
+    assert calls["pull"] == 0

@@ -117,7 +117,7 @@ Effects, a CSV for Resolve, and a page that shows you the song's anatomy.
 
 ## Installation
 
-**Requirements:** Python 3.9+ and [ffmpeg](https://ffmpeg.org) on your PATH.
+**One install, everything included** — DSP engine + semantic hearing:
 
 ```bash
 # macOS
@@ -130,14 +130,18 @@ sudo apt install ffmpeg && pip install spectrumalyzer
 winget install ffmpeg && pip install spectrumalyzer
 ```
 
+The embedding model weights (~90 MB) download automatically the first time
+you run `describe`, `find` or `analyze --embed` — or pull them upfront with
+`spectrumalyzer model pull`. Everything runs locally; nothing leaves your
+machine.
+
 Check your setup:
 
 ```bash
 spectrumalyzer --version    # CLI is on PATH
 ffmpeg -version             # decoder is reachable
+spectrumalyzer model status # embedding model state
 ```
-
----
 
 ## The three commands
 
@@ -352,15 +356,12 @@ MIT — see [LICENSE](LICENSE). Built by
 
 ## Semantic hearing (v0.3) — describe, tag, and find music by meaning
 
-Beyond beats, spectrumalyzer can run a small local embedding model
+Beyond beats, spectrumalyzer ships with a small local embedding model
 (**EmbeddingGemma-300m**, Google's current small Gemma — with a non-gated
 automatic fallback) to give its measurements *language*:
 
 ```bash
-# one-time: download the model (~90 MB fallback / ~600 MB Gemma)
-spectrumalyzer model pull
-
-# describe a track in words + mood/energy/genre tags
+# describe a track in words + mood/energy/genre tags (weights auto-download on first run)
 spectrumalyzer describe song.mp3
 
 # semantic search across a library — plain language in, ranked tracks out
@@ -381,5 +382,3 @@ never an invented BPM.
 The model lives in `~/.config/spectrumalyzer/embedding/` and everything runs
 locally — no audio or text ever leaves your machine. The core DSP analysis
 never depends on it.
-
-Install with the extra: `pip install "spectrumalyzer[embedding]"`.
