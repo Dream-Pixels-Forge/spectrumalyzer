@@ -112,3 +112,10 @@ versioning follows [Semantic Versioning](https://semver.org/).
 - Agent-skill installation documented in the README (MCP client registration
   for Claude Desktop / pi + `npx skills add` for skill-aware agents)
 - PyPI project links updated to the `main` branch
+
+## [0.5.2] — 2026-10-11
+
+### Fixed
+- README skill-install command: the skills CLI takes `owner/repo/subpath`,
+  not GitHub's `tree/<branch>/` URL syntax (verified live — found + installed
+  the skill to 13 agent platforms).

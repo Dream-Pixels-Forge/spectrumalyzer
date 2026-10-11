@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "spectrumalyzer"
-version = "0.5.1"
+version = "0.5.2"
 description = "Audio-reactive analysis toolkit for motion graphics — real spectral flux beat detection, frequency bands, song sections, and frame-native exports for Remotion, HyperFrames, After Effects, FCPXML and CSV workflows"
 readme = "README.md"
 requires-python = ">=3.10"
