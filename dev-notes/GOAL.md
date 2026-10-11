@@ -40,3 +40,12 @@ Transform spectrumalyzer into a real audio-reactive toolkit for creative users:
 - [ ] `analyze --embed` adds description + tags to JSON
 - [ ] All tests run on a deterministic FakeEmbedder (no network in CI); real-model smoke test skipped when absent
 - [ ] Honest scoping: embeddings add semantic UNDERSTANDING (describe/tag/search); beat accuracy stays with the DSP engine
+
+## v0.5.0 addition (2026-10-11): MCP server
+- [ ] `spectrumalyzer mcp` — stdio MCP server (FastMCP), discoverable by any MCP client
+- [ ] Tools: analyze_audio, describe_audio, find_music, export_beats, render_report, model_status
+- [ ] Reuses embedding auto-pull lifecycle (shared with CLI, no duplication)
+- [ ] Lean payloads (no huge matrices unless requested)
+- [ ] `mcp` SDK becomes a base dependency (single-install policy); requires-python >=3.10
+- [ ] Tests call tools via FastMCP.call_tool (real protocol layer, no mocking the protocol)
+- [ ] Release v0.5.0 + MANDATORY three-way verification

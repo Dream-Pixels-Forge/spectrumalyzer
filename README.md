@@ -382,3 +382,31 @@ never an invented BPM.
 The model lives in `~/.config/spectrumalyzer/embedding/` and everything runs
 locally — no audio or text ever leaves your machine. The core DSP analysis
 never depends on it.
+
+---
+
+## MCP server — spectrumalyzer as tools for AI agents
+
+```bash
+spectrumalyzer mcp        # stdio MCP server (blocking)
+```
+
+Register it with any MCP client (pi, Claude Desktop, Cursor, …):
+
+```json
+{"command": "spectrumalyzer", "args": ["mcp"]}
+```
+
+Exposed tools:
+
+| Tool | What the agent gets |
+|---|---|
+| `analyze_audio` | BPM, beat grid, onsets, sections (lean JSON; `include_analysis` for full band matrices) |
+| `describe_audio` | Natural-language description + mood/energy/flavor/use tags |
+| `find_music` | Semantic search over a library ("calm warm bed for an intro") |
+| `export_beats` | Writes Remotion / HyperFrames / AE / FCPXML / CSV deliverables |
+| `render_report` | Self-contained HTML visual report |
+| `model_status` | Embedding model state (diagnostics) |
+
+All tools return structured `{"error": ...}` payloads instead of crashing, so
+agents can react gracefully. Everything runs locally.

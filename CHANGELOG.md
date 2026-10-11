@@ -89,3 +89,16 @@ versioning follows [Semantic Versioning](https://semver.org/).
   `spectrumalyzer model pull` upfront.
 ### Added
 - Packaging contract tests that pin the one-install policy.
+
+## [0.5.0] — 2026-10-11
+
+### Added
+- **MCP server** (`spectrumalyzer mcp`, stdio) — spectrumalyzer as native
+  tools for AI agents: analyze_audio, describe_audio, find_music,
+  export_beats, render_report, model_status + a spectrumalyzer://formats
+  resource. Structured error payloads; lean payloads by default.
+- Shared embedding lifecycle (CLI + MCP auto-pull weights identically).
+- `mcp>=1.2` joins the base dependencies (single-install policy);
+  requires-python bumped to >=3.10 (MCP SDK floor).
+- Protocol-layer tests via FastMCP.call_tool/list_tools + a real stdio
+  JSON-RPC wire test. 93 tests total.

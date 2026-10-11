@@ -69,3 +69,11 @@ python3 -c "from spectrumalyzer import analyze; r = analyze('track.mp3', fps=30)
 - `analyze --embed` — adds description + tags to JSON
 - Honesty gates: pulseless material → bpm 0 + "no clear pulse"; bpmConfidence
   includes onset salience; energy uses absolute dBFS
+
+## MCP Server (v0.5)
+
+- `spectrumalyzer mcp` — stdio server; register with {"command": "spectrumalyzer", "args": ["mcp"]}
+- Tools: analyze_audio, describe_audio, find_music, export_beats, render_report, model_status
+- Agents: prefer describe_audio before choosing music for a scene; use
+  find_music for library queries in natural language; export_beats with
+  fps matching the target project.
