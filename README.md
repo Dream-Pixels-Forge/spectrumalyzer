@@ -431,8 +431,11 @@ Install the spectrumalyzer skill into any skill-aware agent (pi, Claude Code,
 OpenCode, …):
 
 ```bash
-npx skills add github.com/Dream-Pixels-Forge/spectrumalyzer/tree/main/skills/
+npx skills add Dream-Pixels-Forge/spectrumalyzer/skills/spectrumalyzer
 ```
+
+> Note: the skills CLI takes `owner/repo/subpath` — GitHub's `tree/<branch>/`
+> URL syntax is not supported (it would be treated as a literal folder name).
 
 The skill lives in this repo at
 [`skills/spectrumalyzer/SKILL.md`](skills/spectrumalyzer/SKILL.md) and covers
