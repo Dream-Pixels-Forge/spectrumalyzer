@@ -1,65 +1,58 @@
 ---
 name: spectrumalyzer
-description: Audio beat analysis tool for motion graphics - provides BPM detection, beat timestamps, and frequency spectrum data compatible with Remotion and HyperFrames workflows
+description: Audio-reactive analysis toolkit for motion graphics — spectral-flux beat detection, BPM, 6 frequency bands, song sections, and frame-native exports for Remotion, HyperFrames, After Effects, FCPXML and CSV workflows
 ---
 ## Skill Overview
 
-spectrumalyzer is a Python CLI tool for audio beat analysis that helps motion graphics creators synchronize animations to music with maximum precision. The tool provides:
-
-- **Beat detection** using FFT-based onset detection
-- **BPM calculation** using median interval method
-- **Frequency spectrum** generation (128 frequency bins, 20Hz-20kHz)
-- **Remotion JSON output** (.remotion.json) for timeline synchronization
-- **Standard JSON output** (.json) for general use
-- **Adjustable parameters** (threshold, FFT size)
+spectrumalyzer turns music into animation-ready data: beats, BPM, onsets,
+frequency bands, loudness and song sections — exported as frame-native JSON,
+React hooks, marker scripts and timeline formats for the tools creatives
+actually use.
 
 ## Skill Actions
 
-### analyze-beat(audio_file)
+### analyze(audio, options) / CLI `spectrumalyzer analyze`
 
-Analyze an audio file and return beat timestamps, BPM, and spectrum data.
+**Key parameters:**
+- `--fps 24|25|30|60` — adds true frame numbers to every export (REQUIRED for remotion/hyperframes/ae/csv/fcpxml)
+- `--format a,b,c` — any of: json, remotion, hyperframes, ae, csv, fcpxml
+- `--min-bpm/--max-bpm` — tempo search hints for tricky tracks
+- `--stdout` — pipe JSON; `--no-bands/--no-sections` — skip heavy analysis
+- `--output/-o` — base path; each format appends its suffix
 
-**Parameters:**
-- `audio_file` (required): Path to audio file (MP3, WAV, OGG)
-- `--threshold` (optional): Beat detection threshold (0.0-1.0, default: 0.15)
-- `--fft-size` (optional): FFT size for spectrum analysis (256-4096, default: 1024)
-- `--output` (optional): Output JSON file path (default: beats.json)
-- `--format` (optional): Output format (json or remotion, default: json)
+**Returns (JSON / AnalysisResult):**
+- `bpm`, `bpmConfidence`, `beats[]` (time + frame + strength), `onsets[]`
+- `bands.matrix` — 6 rows×frames (sub/bass/lowMid/mid/highMid/treble, 0..1)
+- `sections[]` (quiet/mid/high/peak with energy), `centroid[]`, `loudness[]`
+- `durationInFrames`, `beatsInFrames`, `bandsByFrame` (when fps given)
 
-**Returns:**
-- JSON object with beat analysis results
-- Beat timestamps in seconds
-- BPM value
-- Frequency spectrum data (128 bins)
-- Metadata (version, created timestamp, analyzer name)
+### report(audio) / CLI `spectrumalyzer report`
 
-### Example Usage
+Self-contained HTML: canvas waveform + beat grid, band heatmap, section strip.
+
+## Example Usage
 
 ```bash
-spectrumalyzer analyze-beat /path/to/audio.mp3 --output beats.json --format remotion
+spectrumalyzer analyze track.mp3 --fps 30 --format remotion,csv,ae
+spectrumalyzer report track.mp3 -o report.html
+python3 -c "from spectrumalyzer import analyze; r = analyze('track.mp3', fps=30); print(r.bpm, r.beats_as_frames()[:5])"
 ```
 
-### Compatible Workflows
+## Creative Mapping Cheatsheet
 
-- **Remotion:** Use `.remotion.json` output with `useSound` hook for timeline sync
-- **HyperFrames:** Use beat times to drive timeline events and compositions
-- **Motion Graphics:** Sync animations, camera movements, and visual effects to music beats
+- beats (grid) → camera cuts, scale pops, scroll steps (uniform, kick-locked)
+- onsets → hit accents, glitch flashes, particle bursts (raw transients)
+- bands.sub/bass → camera shake, glow pulses · treble → sparkles
+- centroid → blur/color temperature · loudness → opacity/zoom pressure
+- sections → narrative pacing, scene grouping
 
-### Tested Audio
+## Dependencies
 
-- `/assets/bed_music.mp3` (53.52s)
-- Detected 12 beats at intervals: 3.02s, 7.59s, 9.88s, 13.30s, 15.59s, 19.02s, 21.30s, 31.59s, 32.73s, 33.88s, 34.45s, 35.02s
-- BPM: 23 (calculated from median interval)
+- Python 3.9+, numpy (auto-installed), system ffmpeg
+- No network access needed; all analysis is local and deterministic
 
-### Dependencies
+## Status (v0.2.0)
 
-- Python 3.8+ (standard library only)
-- ffprobe/ffmpeg (system-installed)
-- No external Python packages required
-
-## Skill Status
-
-- **Implementation:** Complete ✅
-- **Testing:** Verified with browsy-promo music track
-- **Output formats:** Both JSON and Remotion formats validated
-- **Integration:** Ready for Remotion/HyperFrames workflows
+- Real DSP engine (v0.1.0's "spectrum" was NOT a real FFT — replaced)
+- 44-test suite green; click-track BPM accuracy ±1 (90/120/140 verified)
+- 6 exporters verified for frame math, XML validity, JSX balance

@@ -1,0 +1,89 @@
+# ROADMAP — spectrumalyzer investigation & future
+
+> Deep-investigation notes from the v0.2.0 rebuild (2026-10-11): what was
+> broken, what was added for creative users, and where the tool goes next.
+
+## 1. What the v0.1.0 audit found
+
+| Finding | Severity | Detail |
+|---|---|---|
+| Fake spectrum | critical | Output "spectrum" was RMS energy sliced into 128 time-chunks with fabricated frequency labels (`fft_transform` existed but was never called) |
+| Dead `min_interval` | critical | Hardcoded to `max(0.1, 2.0)` = 2.0 s → only 12 beats / "23 BPM" detected on a 53 s music track |
+| Dead `--format` flag | major | Both JSON files were always written regardless of the flag |
+| Seconds-only output | major | Creative tools (Remotion/AE/Resolve) work in frames |
+| No tests, no package | major | Loose modules on PyPI via `py_modules`; `gui_report.py` was an empty stub; `build_script.py` wrote a stray copy to `$HOME` |
+| O(n) pure-Python loops | major | Every sample visited in Python; minutes of CPU on real tracks |
+
+## 2. What v0.2.0 added (the creative-toolkit layer)
+
+- **Real DSP**: STFT (Hann, DC-removed), rectified spectral-flux onsets,
+  autocorrelation tempo with octave disambiguation + parabolic refinement,
+  **kick-anchored phase lock** (low-band envelope — fixes grids locking onto
+  off-beat hats), 6-band power with per-band adaptive normalization,
+  spectral centroid, loudness envelope, waveform peaks.
+- **Frame-native exports** at any `--fps`, verified by tests for the exact
+  frame math (`time_to_frame`, `resample_to_fps`).
+- **6 formats**: rich JSON, Remotion (+`useBeats.ts` hook with `useBeatIndex`,
+  `useBeatProgress`, `useIsOnBeat`, `useBeatPop` springs), HyperFrames
+  (timeline events + `hf-seek` snippet), After Effects JSX comp markers,
+  marker CSV, FCPXML.
+- **HTML report**: single self-contained file (canvas waveform, beat grid,
+  band heatmap, section strip) — no server, no assets.
+- **Engineering**: src layout, PEP 621, console script, public `analyze()`
+  API, 44-test suite with ground-truth fixtures (90/120/140 BPM click tracks,
+  band-separation sines, kick+hat drum pattern), CI workflow.
+
+## 3. Verified ecosystem fit
+
+- **Remotion**: `beatsInFrames[]` + hook → zero runtime math in components;
+  `bandsByFrame` rows align 1:1 with `useCurrentFrame()`.
+- **HyperFrames**: events → `data-hf-*` timing attributes / `hf-seek` detail.
+- **After Effects**: `comp.markerProperty.setValueAtTime()` inside an
+  undo group — snap layers/keyframes to beats.
+- **FCPXML 1.8**: rational-time markers (`15/30s`) open in FCP & Resolve.
+- **CSV**: Premiere/Resolve marker-import extensions + spreadsheets.
+
+## 4. Next features (ranked for creative value)
+
+### v0.3 — musical intelligence
+- [ ] **Downbeat/bar detection** — kick-anchored phase gives the beat; add
+      bar (4/4) grouping → exporters gain `barsInFrames` for measure-level
+      cuts (this is what "cut every 4 beats" workflows need).
+- [ ] **Musical key detection** (chroma profile → key) — creative mapping:
+      Camelot wheel → palette/color-grade suggestion.
+- [ ] **Beat-strength quantiles → "impact tiers"** — pre-label beats as
+      normal/accent/downbeat-adjacent for automatic edit emphasis.
+
+### v0.4 — workflow integration
+- [ ] **Cut-list generator** — `spectrumalyzer cuts track.mp3 --every 4beats
+      --section peak` → edit-decision CSV/JSON for Premiere/Resolve scripting.
+- [ ] **Ableton Live / FLP / REAPER project stubs** — markers as tempo-warped
+      project items for composers syncing visuals to music.
+- [ ] **DaVinci Resolve scripting** (DaVinci API) — direct timeline marker
+      injection, no CSV middleman.
+- [ ] **Watch mode** — re-analyze on file change for iterative edit sessions.
+
+### v0.5 — performance & reach
+- [ ] **Streaming/CLI speed**: ffmpeg pipe decode already streams; move STFT
+      to `scipy.fft` (pocketfft) when scipy present — ~2× on long tracks.
+- [ ] **GPU path** (optional `cupy` extra) for hour-long sets.
+- [ ] **Web/WASM build** (Pyodide) — in-browser analysis for web-based editors
+      (Remotion Studio plugins, HyperFrames Studio).
+- [ ] **Precomputed cache** (`.spectralyzer-cache.json`) keyed by file hash —
+      instant re-exports at different fps without re-analysis.
+
+### v1.0 — polish
+- [ ] Confidence-based warnings ("low confidence — try --min-bpm hints")
+- [ ] Multi-language READMEs, docs site, GIF demo in README
+- [ ] macOS Notarized binary via PyInstaller for non-Python editors
+
+## 5. Known tradeoffs (honesty ledger)
+
+- Octave errors: strongly syncopated 8th-note-heavy music may report double
+  or half tempo within default 60–200 range; `--min-bpm/--max-bpm` hints fix it.
+- Phase lock prefers the kick; tracks without low-frequency pulse fall back to
+  onset circular mean (accurate to ~1 analysis frame ≈ 12 ms).
+- Sections are energy-novelty based — structural, not harmonic (no chord
+  awareness yet; see v0.3 key detection).
+- FCPXML uses integer fps for rational time; 29.97 fps DF timecode is not
+  represented (drops are rare for marker workflows).
