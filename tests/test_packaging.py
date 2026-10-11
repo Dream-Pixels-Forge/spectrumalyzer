@@ -51,3 +51,10 @@ def test_python_floor_covers_mcp_sdk():
     assert _load()["project"]["requires-python"] == ">=3.10", (
         "the MCP SDK requires Python 3.10+ — keep the floor in sync"
     )
+
+
+def test_mcp_sdk_pinned_to_v1_api():
+    """mcp 2.x renamed FastMCP to MCPServer — the pin guards the API we use."""
+    deps = _load()["project"]["dependencies"]
+    mcp_pin = next(d for d in deps if d.startswith("mcp"))
+    assert "<2" in mcp_pin, f"mcp must be pinned <2 (FastMCP API): got {mcp_pin}"
