@@ -102,3 +102,13 @@ versioning follows [Semantic Versioning](https://semver.org/).
   requires-python bumped to >=3.10 (MCP SDK floor).
 - Protocol-layer tests via FastMCP.call_tool/list_tools + a real stdio
   JSON-RPC wire test. 93 tests total.
+
+## [0.5.1] — 2026-10-11
+
+### Changed
+- Default branch renamed `master` → `main` (modern convention; keeps the
+  documented skill-install URL working: `npx skills add
+  github.com/Dream-Pixels-Forge/spectrumalyzer/tree/main/skills/`)
+- Agent-skill installation documented in the README (MCP client registration
+  for Claude Desktop / pi + `npx skills add` for skill-aware agents)
+- PyPI project links updated to the `main` branch

@@ -431,15 +431,12 @@ Install the spectrumalyzer skill into any skill-aware agent (pi, Claude Code,
 OpenCode, …):
 
 ```bash
-npx skills add github.com/Dream-Pixels-Forge/verdity/tree/main/skills/spectrumalyzer
+npx skills add github.com/Dream-Pixels-Forge/spectrumalyzer/tree/main/skills/
 ```
 
-The skill covers when and how to use spectrumalyzer: analysis for scene
-timing, semantic music search, the signal→animation mapping (bass → glow,
-treble → sparkle), MCP tool selection, and export format choice per
-creative tool. Useful even before the MCP server is registered — and
-complementary to it.
-
-Skill source: [`skills/spectrumalyzer/SKILL.md`](skills/spectrumalyzer/SKILL.md)
-in this repo, mirrored to the
-[verdity skills registry](https://github.com/Dream-Pixels-Forge/verdity/tree/main/skills/spectrumalyzer).
+The skill lives in this repo at
+[`skills/spectrumalyzer/SKILL.md`](skills/spectrumalyzer/SKILL.md) and covers
+when and how to use spectrumalyzer: analysis for scene timing, semantic music
+search, the signal→animation mapping (bass → glow, treble → sparkle), MCP
+tool selection, and export format choice per creative tool. Useful even
+before the MCP server is registered — and complementary to it.
