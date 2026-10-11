@@ -76,3 +76,16 @@ versioning follows [Semantic Versioning](https://semver.org/).
 ### Fixed
 - Beat grid no longer locks to off-beat hi-hats on low-pulse tracks (kick-anchored
   phase refinement extended)
+
+## [0.4.0] — 2026-10-11
+
+### Changed
+- **Single install**: sentence-transformers moved into the base dependencies —
+  `pip install spectrumalyzer` now includes the full semantic-hearing stack.
+  The `[embedding]` extra is gone (it was never actually declared in v0.3.0's
+  packaging metadata — caught by the new packaging contract tests).
+- Model *weights* still download on demand: `describe` / `find` /
+  `analyze --embed` now auto-pull on first use (one-time ~90 MB), or run
+  `spectrumalyzer model pull` upfront.
+### Added
+- Packaging contract tests that pin the one-install policy.

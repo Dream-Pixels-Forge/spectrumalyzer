@@ -8,6 +8,7 @@ import sys
 from pathlib import Path
 
 from spectrumalyzer._version import __version__
+from spectrumalyzer.embedding.backend import EmbeddingNotAvailable
 from spectrumalyzer.exporters import FORMATS, export, export_filename, extra_files
 
 
@@ -16,6 +17,24 @@ def _load_backend():
     from spectrumalyzer.embedding.backend import EmbeddingBackend
 
     return EmbeddingBackend.load()
+
+
+def _ensure_backend():
+    """Load the backend, auto-pulling model weights on first use.
+
+    The library ships with the package (single install); the weights are
+    downloaded on demand so `describe`/`find`/`--embed` just work out of the
+    box. Raises the underlying error when offline.
+    """
+    from spectrumalyzer.embedding.backend import EmbeddingBackend
+
+    try:
+        return EmbeddingBackend.load()
+    except EmbeddingNotAvailable:
+        print("First run: downloading the embedding model (one-time, ~90 MB) …", file=sys.stderr)
+        chosen = EmbeddingBackend.pull()
+        print(f"Model ready: {chosen}", file=sys.stderr)
+        return EmbeddingBackend.load()
 
 
 def _analyze_and_enrich(args, quiet: bool):
