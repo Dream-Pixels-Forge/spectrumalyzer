@@ -387,17 +387,31 @@ never depends on it.
 
 ## MCP server — spectrumalyzer as tools for AI agents
 
+### Run it
+
 ```bash
 spectrumalyzer mcp        # stdio MCP server (blocking)
 ```
 
-Register it with any MCP client (pi, Claude Desktop, Cursor, …):
+### Register with your MCP client
+
+**Claude Desktop / any JSON-config host** — add to the MCP config:
 
 ```json
-{"command": "spectrumalyzer", "args": ["mcp"]}
+{
+  "mcpServers": {
+    "spectrumalyzer": {"command": "spectrumalyzer", "args": ["mcp"]}
+  }
+}
 ```
 
-Exposed tools:
+**pi / pi-coding-agent** — add to `~/.pi/agent/mcp.json`:
+
+```json
+{"mcpServers": {"spectrumalyzer": {"command": "spectrumalyzer", "args": ["mcp"]}}}
+```
+
+Once registered, the agent gets these tools natively:
 
 | Tool | What the agent gets |
 |---|---|
@@ -410,3 +424,22 @@ Exposed tools:
 
 All tools return structured `{"error": ...}` payloads instead of crashing, so
 agents can react gracefully. Everything runs locally.
+
+## Agent skill — teach your agent to use it
+
+Install the spectrumalyzer skill into any skill-aware agent (pi, Claude Code,
+OpenCode, …):
+
+```bash
+npx skills add github.com/Dream-Pixels-Forge/verdity/tree/main/skills/spectrumalyzer
+```
+
+The skill covers when and how to use spectrumalyzer: analysis for scene
+timing, semantic music search, the signal→animation mapping (bass → glow,
+treble → sparkle), MCP tool selection, and export format choice per
+creative tool. Useful even before the MCP server is registered — and
+complementary to it.
+
+Skill source: [`skills/spectrumalyzer/SKILL.md`](skills/spectrumalyzer/SKILL.md)
+in this repo, mirrored to the
+[verdity skills registry](https://github.com/Dream-Pixels-Forge/verdity/tree/main/skills/spectrumalyzer).
