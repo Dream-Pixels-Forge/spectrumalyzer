@@ -48,3 +48,31 @@ versioning follows [Semantic Versioning](https://semver.org/).
 
 - Initial PyPI release: energy-based beat detection, median-interval BPM,
   JSON + Remotion output (superseded by 0.2.0's real DSP engine)
+
+## [0.3.0] — 2026-10-11
+
+### Added
+- **Local embedding layer** — semantic hearing on top of the DSP engine:
+  - Model home `~/.config/spectrumalyzer/embedding/` (XDG + `SPECTRUMALYZER_HOME` override)
+  - Preferred model `google/embeddinggemma-300m` (current small Gemma; HF-gated —
+    accept the Gemma license + HF_TOKEN); automatic fallback to the non-gated
+    `sentence-transformers/all-MiniLM-L6-v2` so it works out of the box
+  - `spectrumalyzer model pull | status`
+  - `spectrumalyzer describe AUDIO` — natural-language description + mood /
+    energy / flavor / use-case tags, hybrid-scored: embedding similarity +
+    measured feature profiles (tempo, dBFS energy, brightness, bass, transient
+    density, section contrast)
+  - `spectrumalyzer find "query" DIR` — semantic search over an audio library
+    with a persistent embedding index (mtime/size-fresh cache)
+  - `analyze --embed` — adds `description` + `tags` to JSON output
+- Optional dependency extra: `pip install "spectrumalyzer[embedding]"`
+- Honest tempo gating: pulseless material (ambient/pads/noise) now reports
+  `bpm: 0` instead of an invented tempo; `bpmConfidence` now folds in onset
+  salience (noise ≈ 0.01, click tracks ≈ 0.96) — it was near 1.0 for noise before
+- Absolute loudness (`loudnessDb`, dBFS) added to analysis + exports: per-track
+  normalization had erased the quiet-master vs loud-master distinction
+- 15 new tests (fake embedder — deterministic, no network); 74 total
+
+### Fixed
+- Beat grid no longer locks to off-beat hi-hats on low-pulse tracks (kick-anchored
+  phase refinement extended)

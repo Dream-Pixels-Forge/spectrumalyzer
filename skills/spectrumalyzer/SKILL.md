@@ -1,5 +1,6 @@
 ---
 name: spectrumalyzer
+version-note: v0.3.0 — adds local embedding layer (describe / find / --embed)
 description: Audio-reactive analysis toolkit for motion graphics — spectral-flux beat detection, BPM, 6 frequency bands, song sections, and frame-native exports for Remotion, HyperFrames, After Effects, FCPXML and CSV workflows
 ---
 ## Skill Overview
@@ -56,3 +57,14 @@ python3 -c "from spectrumalyzer import analyze; r = analyze('track.mp3', fps=30)
 - Real DSP engine (v0.1.0's "spectrum" was NOT a real FFT — replaced)
 - 44-test suite green; click-track BPM accuracy ±1 (90/120/140 verified)
 - 6 exporters verified for frame math, XML validity, JSX balance
+
+## Semantic Hearing (v0.3)
+
+- `spectrumalyzer model pull` / `model status` — local embedding model at
+  ~/.config/spectrumalyzer/embedding (EmbeddingGemma-300m preferred; MiniLM fallback)
+- `spectrumalyzer describe AUDIO` — NL description + mood/energy/flavor/use tags
+  (hybrid: embedding similarity + measured feature profiles)
+- `spectrumalyzer find "query" DIR` — semantic library search (persistent index)
+- `analyze --embed` — adds description + tags to JSON
+- Honesty gates: pulseless material → bpm 0 + "no clear pulse"; bpmConfidence
+  includes onset salience; energy uses absolute dBFS

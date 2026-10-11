@@ -154,6 +154,7 @@ class AnalysisResult:
     loudness: list[float] = field(default_factory=list)  # per analysis frame, 0..1
     waveform_peaks: list[float] = field(default_factory=list)  # downsampled for viz
     fps: float | None = None  # set when frame numbers were requested
+    loudness_db: float | None = None  # true (unnormalized) mean RMS in dBFS
     metadata: dict[str, Any] = field(default_factory=dict)
 
     # ---- convenience -----------------------------------------------------

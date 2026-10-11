@@ -11,6 +11,41 @@ from spectrumalyzer._version import __version__
 from spectrumalyzer.exporters import FORMATS, export, export_filename, extra_files
 
 
+def _load_backend():
+    """Load the local embedding backend (seam for tests / dependency injection)."""
+    from spectrumalyzer.embedding.backend import EmbeddingBackend
+
+    return EmbeddingBackend.load()
+
+
+def _analyze_and_enrich(args, quiet: bool):
+    """Shared analyze+optional-embed logic; returns (result, payload_extra)."""
+    from spectrumalyzer.api import analyze
+
+    result = analyze(
+        args.audio if hasattr(args, "audio") else args.audio_path,
+        fps=getattr(args, "fps", None),
+        bands=not getattr(args, "no_bands", False),
+        sections=not getattr(args, "no_sections", False),
+        min_bpm=getattr(args, "min_bpm", 60.0),
+        max_bpm=getattr(args, "max_bpm", 200.0),
+    )
+    extra: dict = {}
+    if getattr(args, "embed", False):
+        from spectrumalyzer.embedding.describe import describe
+        from spectrumalyzer.embedding.mood import tag_track
+
+        backend = _load_backend()
+        d = describe(result)
+        tags = tag_track(backend, d["text"])
+        extra = {
+            "description": {"summary": d["summary"], "description": d["description"]},
+            "tags": {axis: [[t, round(s, 3)] for t, s in scored] for axis, scored in tags.items()},
+        }
+        _log(quiet, f"  ↳ {d['summary']}")
+    return result, extra
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="spectrumalyzer",
@@ -59,6 +94,10 @@ def build_parser() -> argparse.ArgumentParser:
     p_analyze.add_argument(
         "--stdout", action="store_true", help="Write JSON of the first format to stdout"
     )
+    p_analyze.add_argument(
+        "--embed", action="store_true",
+        help="Add natural-language description + mood tags (requires local embedding model: spectrumalyzer model pull)",
+    )
     p_analyze.add_argument("-q", "--quiet", action="store_true", help="Suppress progress output")
 
     # ---- report ----------------------------------------------------------
@@ -78,6 +117,35 @@ def build_parser() -> argparse.ArgumentParser:
 
     # ---- formats ---------------------------------------------------------
     sub.add_parser("formats", help="List available export formats")
+
+    # ---- model (embedding lifecycle) ---------------------------------------
+    p_model = sub.add_parser(
+        "model",
+        help="Manage the local embedding model",
+        description="Pull or inspect the local embedding model used by describe/find/--embed.",
+    )
+    p_model.add_argument("action", choices=["pull", "status"], help="pull = download to config dir; status = show what is installed")
+
+    # ---- describe ----------------------------------------------------------
+    p_desc = sub.add_parser(
+        "describe",
+        help="Describe a track in natural language + mood tags",
+        description="Analyze a track and describe it in words (requires the embedding model).",
+    )
+    p_desc.add_argument("audio", help="Audio file")
+    p_desc.add_argument("--fps", type=float, default=None, help="Frame rate for frame data")
+    p_desc.add_argument("--top", type=int, default=3, help="Tags per axis (default 3)")
+
+    # ---- find (semantic library search) -------------------------------------
+    p_find = sub.add_parser(
+        "find",
+        help="Semantic search over a folder of audio files",
+        description='e.g. spectrumalyzer find "calm warm bed for intro" ./my-library --limit 5',
+    )
+    p_find.add_argument("query", help="Natural-language query")
+    p_find.add_argument("directory", help="Folder to search (recursive)")
+    p_find.add_argument("--limit", type=int, default=10, help="Max results (default 10)")
+    p_find.add_argument("--refresh", action="store_true", help="Re-analyze even if cached")
 
     return parser
 
@@ -130,6 +198,23 @@ def cmd_analyze(args: argparse.Namespace) -> int:
         f"{len(result.sections)} sections · {result.duration:.1f}s",
     )
 
+    extra_payload: dict = {}
+    if getattr(args, "embed", False):
+        from spectrumalyzer.embedding.describe import describe, feature_vector
+        from spectrumalyzer.embedding.mood import tag_track
+
+        try:
+            backend = _load_backend()
+            d = describe(result)
+            tags = tag_track(backend, d["text"], features=feature_vector(result))
+            extra_payload = {
+                "description": {"summary": d["summary"], "description": d["description"]},
+                "tags": {axis: [[t, round(s, 3)] for t, s in scored] for axis, scored in tags.items()},
+            }
+            _log(args.quiet, f"  ↳ {d['summary']}")
+        except Exception as exc:  # noqa: BLE001 — surface model/IO errors to the user
+            print(f"warning: embedding skipped ({exc})", file=sys.stderr)
+
     base = args.output
     written: list[str] = []
 
@@ -140,7 +225,14 @@ def cmd_analyze(args: argparse.Namespace) -> int:
 
     for fmt in formats:
         out_path = export_filename(result, fmt, base=base)
-        Path(out_path).write_text(export(result, fmt), encoding="utf-8")
+        rendered = export(result, fmt)
+        if extra_payload and fmt == "json":
+            import json as _json
+
+            data = _json.loads(rendered)
+            data.update(extra_payload)
+            rendered = _json.dumps(data, indent=2)
+        Path(out_path).write_text(rendered, encoding="utf-8")
         written.append(out_path)
         base_stem = out_path.removesuffix(FORMATS[fmt].suffix)
         for extra_suffix, content in extra_files(result, fmt, base=base_stem).items():
@@ -182,6 +274,126 @@ def cmd_formats(_args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_model(args: argparse.Namespace) -> int:
+    from spectrumalyzer.embedding.backend import (
+        FALLBACK_MODEL,
+        PREFERRED_MODEL,
+        EmbeddingBackend,
+        default_model_dir,
+    )
+
+    d = default_model_dir()
+    if args.action == "status":
+        print(f"Model home:        {d}")
+        print(f"Preferred model:   {PREFERRED_MODEL}  (Gemma license: accept on HF + HF_TOKEN)")
+        print(f"Fallback model:    {FALLBACK_MODEL}  (non-gated, automatic)")
+        installed = EmbeddingBackend.downloaded_name()
+        if installed:
+            print(f"Installed:         {installed} ✓")
+        elif EmbeddingBackend.is_downloaded():
+            print("Installed:         (local files present)")
+        else:
+            print("Installed:         none — run: spectrumalyzer model pull")
+        return 0
+
+    print(f"Pulling embedding model into {d} …")
+    try:
+        chosen = EmbeddingBackend.pull()
+    except Exception as exc:  # noqa: BLE001 — surface model/IO errors to the user
+        print(f"Error: {exc}", file=sys.stderr)
+        return 1
+    print(f"Installed: {chosen}")
+    return 0
+
+
+def cmd_describe(args: argparse.Namespace) -> int:
+    from spectrumalyzer.api import analyze
+    from spectrumalyzer.embedding.describe import describe, feature_vector
+    from spectrumalyzer.embedding.mood import tag_track
+
+    audio = Path(args.audio)
+    if not audio.exists():
+        print(f"Error: file not found: {audio}", file=sys.stderr)
+        return 1
+    try:
+        backend = _load_backend()
+    except Exception as exc:  # noqa: BLE001 — surface model/IO errors to the user
+        print(f"Error: {exc}", file=sys.stderr)
+        return 1
+
+
+    result = analyze(str(audio), fps=args.fps)
+    d = describe(result)
+    tags = tag_track(backend, d["text"], features=feature_vector(result), top_k=args.top)
+
+    print(f"{audio.name}")
+    print(f"  {d['summary']}")
+    print(f"  {d['description']}")
+    print()
+    for axis, scored in tags.items():
+        label = ", ".join(f"{t} ({s:.2f})" for t, s in scored)
+        print(f"  {axis:<8} {label}")
+    return 0
+
+
+def cmd_find(args: argparse.Namespace) -> int:
+    from spectrumalyzer.api import analyze
+    from spectrumalyzer.embedding.describe import (
+        describe,
+        embedding_text,
+        feature_vector,
+    )
+    from spectrumalyzer.embedding.mood import tag_track
+    from spectrumalyzer.embedding.store import EmbeddingStore
+
+    directory = Path(args.directory)
+    files = EmbeddingStore.audio_files(directory)
+    if not files:
+        print(f"No audio files found in {directory}", file=sys.stderr)
+        return 1
+    try:
+        backend = _load_backend()
+    except Exception as exc:  # noqa: BLE001 — surface model/IO errors to the user
+        print(f"Error: {exc}", file=sys.stderr)
+        return 1
+
+    store = EmbeddingStore()
+    store.model_name = backend.name
+    indexed = 0
+    for f in files:
+        stat = EmbeddingStore._stat_of(f)
+        if not args.refresh and store.get(f, stat) is not None:
+            continue
+        _log(False, f"Analyzing {f.name} …")
+        result = analyze(str(f))
+        d = describe(result)
+        tags = tag_track(backend, d["text"], features=feature_vector(result))
+        vec = backend.embed_one(embedding_text(d, tags))
+        store.upsert_entry(
+            f, summary=d["text"], embedding=vec.tolist(), tags=tags,
+            bpm=result.bpm, duration=result.duration, stat=stat,
+        )
+        indexed += 1
+    if indexed:
+        store.save()
+
+    hits = store.search(args.query, embedder=backend, k=args.limit)
+    if not hits:
+        print("No matches.")
+        return 0
+    print(f"\nTop {len(hits)} matches for '{args.query}':\n")
+    for i, hit in enumerate(hits, 1):
+        bpm = f"{hit['bpm']:.0f} bpm" if hit.get("bpm") else "—"
+        top_tags = ", ".join(
+            t for axis in ("mood", "energy", "use")
+            for t, _ in (hit.get("tags") or {}).get(axis, [])[:1]
+        )
+        print(f"  {i}. [{hit['score']:+.3f}] {Path(hit['path']).name}  ({bpm}; {top_tags})")
+        print(f"      {hit['summary'][:110]}")
+    print()
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
@@ -191,6 +403,12 @@ def main(argv: list[str] | None = None) -> int:
         return cmd_report(args)
     if args.command == "formats":
         return cmd_formats(args)
+    if args.command == "model":
+        return cmd_model(args)
+    if args.command == "describe":
+        return cmd_describe(args)
+    if args.command == "find":
+        return cmd_find(args)
     parser.print_help()
     return 1
 
