@@ -24,6 +24,21 @@ from spectrumalyzer.analysis.spectrum import (
 from spectrumalyzer.model import Beat
 
 MIN_ONSET_DISTANCE_S = 0.1
+MIN_TEMPO_CONFIDENCE = 0.3  # below this, the track has no trustworthy pulse
+
+
+def onset_salience(env: np.ndarray) -> float:
+    """How much the envelope is dominated by isolated transients.
+
+    Pulsed material (kicks, clicks) produces sparse spikes over a near-zero
+    floor (ratio ≈ 6-10+); continuous material (pads, noise beds, sines)
+    produces flat fluctuation (ratio ≈ 1-3). This — not autocorrelation
+    sharpness — is what tells us whether a tempo claim is meaningful.
+    """
+    if len(env) == 0:
+        return 0.0
+    median = float(np.median(env))
+    return float(env.max() / (median + 1e-9))
 
 
 def _smooth(x: np.ndarray, k: int = 3) -> np.ndarray:
@@ -100,7 +115,13 @@ def estimate_tempo(
 
     bpm = 60.0 * fps_env / lag
     bpm = float(np.clip(bpm, min_bpm, max_bpm))
-    confidence = float(np.clip(best_score, 0.0, 1.0))
+    # Confidence must combine autocorrelation sharpness WITH onset salience:
+    # overlapping STFT windows make the flux envelope smooth, so raw acf
+    # peaks near 1.0 even for pure noise. Salience separates pulse from
+    # texture — this is the number exports expose, so it must be honest.
+    salience = onset_salience(env)
+    salience_factor = float(np.clip((salience - 1.0) / 8.0, 0.0, 1.0))
+    confidence = float(np.clip(best_score, 0.0, 1.0) * salience_factor)
     return round(bpm, 2), round(confidence, 3)
 
 
@@ -205,6 +226,12 @@ def detect_beats(
 
     onsets = pick_onsets(env, sample_rate)
     bpm, confidence = estimate_tempo(pcm, sample_rate, min_bpm, max_bpm)
+
+    # Honesty gate: pulseless material (ambient, pads, noise beds) yields a
+    # sharp-looking but meaningless autocorrelation peak. Refuse to report a
+    # tempo or a grid we do not actually hear.
+    if confidence < MIN_TEMPO_CONFIDENCE:
+        bpm = 0.0
 
     if duration <= 0:
         duration = len(pcm) / sample_rate

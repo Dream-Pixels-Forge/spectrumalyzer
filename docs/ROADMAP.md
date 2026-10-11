@@ -87,3 +87,21 @@
   awareness yet; see v0.3 key detection).
 - FCPXML uses integer fps for rational time; 29.97 fps DF timecode is not
   represented (drops are rare for marker workflows).
+
+## 6. Embedding layer status (v0.3, 2026-10-11)
+
+Shipped: model lifecycle at ~/.config/spectrumalyzer/embedding (EmbeddingGemma-300m
+preferred, MiniLM fallback), describe/tag/find/--embed, feature-profile-anchored
+tags, honest tempo gating (bpm=0 when onset salience is low), absolute dBFS
+loudness.
+
+Calibration backlog (needs a labeled real-music validation set):
+- [ ] Tag bank profiles are coarse — real mastered music clusters tightly
+      (energy 0.75-0.95, density 0.3-0.5), so most tracks read "aggressive /
+      moderate". Calibrate profiles against genre-labeled real tracks.
+- [ ] Search discrimination on sonically similar tracks is weak (cosines
+      0.3-0.6). Add query-side feature parsing (embed the query against the
+      descriptor bank to infer a feature vector, then hybrid-score).
+- [ ] Matryoshka truncation (embeddinggemma 768→128/64) for smaller indices.
+- [ ] CLAP-style audio encoder for true audio↔text shared space (the current
+      layer is text↔text with measurement-anchored text).

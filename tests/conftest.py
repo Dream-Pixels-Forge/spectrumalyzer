@@ -100,3 +100,20 @@ def treble_sine(tmp_path_factory) -> Path:
 def two_sections(tmp_path_factory) -> Path:
     p = tmp_path_factory.mktemp("audio") / "two_sections.wav"
     return write_wav(p, two_section_track())
+
+
+@pytest.fixture
+def fake_embedder():
+    from fake_embedder import FakeEmbedder
+
+    return FakeEmbedder()
+
+
+@pytest.fixture(scope="session")
+def pulseless_pad(tmp_path_factory) -> Path:
+    """Sustained soft tones — no pulse whatsoever (ambient material)."""
+    p = tmp_path_factory.mktemp("audio") / "pad.wav"
+    t = np.arange(int(12 * SR)) / SR
+    audio = 0.12 * np.sin(2 * np.pi * 220 * t) + 0.08 * np.sin(2 * np.pi * 330 * t)
+    audio *= 0.5 + 0.5 * np.sin(2 * np.pi * 0.2 * t)
+    return write_wav(p, audio.astype(np.float32))

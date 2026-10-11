@@ -347,3 +347,39 @@ stubs, Resolve scripting): see [docs/ROADMAP.md](docs/ROADMAP.md).
 
 MIT — see [LICENSE](LICENSE). Built by
 [Dream-Pixels-Forge](https://github.com/Dream-Pixels-Forge).
+
+---
+
+## Semantic hearing (v0.3) — describe, tag, and find music by meaning
+
+Beyond beats, spectrumalyzer can run a small local embedding model
+(**EmbeddingGemma-300m**, Google's current small Gemma — with a non-gated
+automatic fallback) to give its measurements *language*:
+
+```bash
+# one-time: download the model (~90 MB fallback / ~600 MB Gemma)
+spectrumalyzer model pull
+
+# describe a track in words + mood/energy/genre tags
+spectrumalyzer describe song.mp3
+
+# semantic search across a library — plain language in, ranked tracks out
+spectrumalyzer find "calm warm bed for a documentary intro" ./my-library
+spectrumalyzer find "aggressive intense banger for a workout" ./my-library
+
+# attach description + tags to any analysis
+spectrumalyzer analyze song.mp3 --embed -o enriched.json
+```
+
+**How it stays honest:** tags are not magic. Every track is summarized in
+words derived from measurements (tempo class, dBFS loudness, brightness,
+dominant frequency band, transient density, section contrast), then tagged by
+blending embedding similarity with a **numeric feature-profile match** per
+descriptor. Pulseless ambient material is reported as *"no clear pulse"* —
+never an invented BPM.
+
+The model lives in `~/.config/spectrumalyzer/embedding/` and everything runs
+locally — no audio or text ever leaves your machine. The core DSP analysis
+never depends on it.
+
+Install with the extra: `pip install "spectrumalyzer[embedding]"`.

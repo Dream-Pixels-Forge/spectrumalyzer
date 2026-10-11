@@ -2,6 +2,10 @@
 
 from __future__ import annotations
 
+import math
+
+import numpy as np
+
 from spectrumalyzer._version import __version__
 from spectrumalyzer.analysis.beats import detect_beats
 from spectrumalyzer.analysis.features import loudness_envelope, waveform_peaks
@@ -47,6 +51,10 @@ def analyze(
     else:
         centroid = []
     loudness = loudness_envelope(pcm, sr)
+    # true loudness (dBFS) — per-track normalization above erases absolute
+    # level, which is real musical information (a quiet ballad vs a loud master)
+    rms = float(np.sqrt(np.mean(np.asarray(pcm, dtype=np.float64) ** 2)))
+    loudness_db = 20.0 * math.log10(max(rms, 1e-6))
 
     result = AnalysisResult(
         path=str(path),
@@ -60,6 +68,7 @@ def analyze(
         centroid=centroid,
         loudness=loudness,
         waveform_peaks=waveform_peaks(pcm, waveform_buckets),
+        loudness_db=loudness_db,
         fps=fps,
         metadata={
             "version": __version__,

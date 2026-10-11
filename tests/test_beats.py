@@ -115,3 +115,24 @@ def test_beat_grid_locks_to_kicks_not_hats(tmp_path):
     for kick_t in [1.0 + k for k in range(18)]:
         nearest = min(beats, key=lambda b: abs(b.time - kick_t)).time
         assert abs(nearest - kick_t) < 0.06, f"kick {kick_t}s vs grid {nearest}s"
+
+
+def test_pulseless_material_reports_no_tempo(pulseless_pad):
+    """Honesty gate: ambient/pad material with no pulse must NOT get an
+    invented BPM — confidence below threshold means bpm=0 and no grid."""
+    from spectrumalyzer.api import analyze
+
+    result = analyze(str(pulseless_pad))
+    assert result.bpm == 0.0, f"invented {result.bpm} bpm for pulseless audio"
+    assert result.beat_count == 0
+    assert result.bpm_confidence < 0.3
+
+
+def test_describe_pulseless_is_honest(pulseless_pad):
+    from spectrumalyzer.api import analyze
+    from spectrumalyzer.embedding.describe import describe
+
+    d = describe(analyze(str(pulseless_pad)))
+    text = (d["summary"] + " " + d["description"]).lower()
+    assert "no clear pulse" in text or "free" in text
+    assert "fast" not in text

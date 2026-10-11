@@ -1,4 +1,4 @@
-# GOAL: spectrumalyzer v0.2.0 — Creative Toolkit Upgrade
+# GOAL: spectrumalyzer v0.3.0 — Local Embedding Layer ("the tool can hear")
 
 ## Problem
 v0.1.0 shipped with: fake "spectrum" (RMS time-slices labeled as frequencies, dead FFT code),
@@ -30,3 +30,13 @@ Transform spectrumalyzer into a real audio-reactive toolkit for creative users:
 - [ ] `spectrumalyzer report <fixture> -o report.html` — opens, contains canvas + beat data
 - [ ] Click-track test: detected BPM within ±3 of 120
 - [ ] No dead code from v0.1.0 remains (build_script.py, gui_report.py stub, root spectrumalyzer.py removed)
+
+## v0.3.0 addition (2026-10-11): semantic hearing layer
+- [ ] Embedding model lives at ~/.config/spectrumalyzer/embedding/ (XDG + SPECTRUMALYZER_HOME override)
+- [ ] Default model google/embeddinggemma-300m (current small Gemma; gated → needs HF token), auto-fallback all-MiniLM-L6-v2 (non-gated, works out of the box)
+- [ ] `model pull` / `model status` commands
+- [ ] `describe AUDIO` → natural-language description + mood/energy/genre/use tags
+- [ ] `find "query" DIR` → semantic search over an audio library (cached in store)
+- [ ] `analyze --embed` adds description + tags to JSON
+- [ ] All tests run on a deterministic FakeEmbedder (no network in CI); real-model smoke test skipped when absent
+- [ ] Honest scoping: embeddings add semantic UNDERSTANDING (describe/tag/search); beat accuracy stays with the DSP engine
