@@ -10,7 +10,6 @@ from __future__ import annotations
 import shutil
 import subprocess
 import sys
-from typing import Optional, Tuple
 
 import numpy as np
 
@@ -82,14 +81,14 @@ def decode_pcm(path: str, sample_rate: int = DEFAULT_SAMPLE_RATE) -> np.ndarray:
         "-f", "f32le",             # 32-bit float little-endian
         "-",
     ]
-    result = subprocess.run(cmd, capture_output=True)
+    result = subprocess.run(cmd, check=False, capture_output=True)
     if result.returncode != 0 or len(result.stdout) == 0:
         stderr = result.stderr.decode("utf-8", "replace")[:400]
         raise RuntimeError(f"ffmpeg could not decode audio from {path}: {stderr}")
     return np.frombuffer(result.stdout, dtype=np.float32).copy()
 
 
-def load(path: str, sample_rate: int = DEFAULT_SAMPLE_RATE) -> Tuple[np.ndarray, float, int]:
+def load(path: str, sample_rate: int = DEFAULT_SAMPLE_RATE) -> tuple[np.ndarray, float, int]:
     """Convenience: returns (pcm, duration_seconds, sample_rate)."""
     pcm = decode_pcm(path, sample_rate)
     duration = probe_duration(path)
@@ -98,5 +97,5 @@ def load(path: str, sample_rate: int = DEFAULT_SAMPLE_RATE) -> Tuple[np.ndarray,
     return pcm, float(duration), sample_rate
 
 
-def which_ffmpeg() -> Optional[str]:
+def which_ffmpeg() -> str | None:
     return shutil.which("ffmpeg")

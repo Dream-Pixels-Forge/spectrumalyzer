@@ -8,8 +8,6 @@ guesses.
 
 from __future__ import annotations
 
-from typing import List
-
 import numpy as np
 
 from spectrumalyzer.model import SECTION_LABELS, Section
@@ -30,7 +28,7 @@ def detect_sections(
     duration: float,
     min_section_s: float = MIN_SECTION_S,
     hop: int = 512,
-) -> List[Section]:
+) -> list[Section]:
     """Split the track into structural sections with relative energy labels."""
     n = len(pcm)
     if n == 0 or duration <= 0:
@@ -68,7 +66,7 @@ def detect_sections(
     boundaries.append(n_frames)
 
     # merge sections shorter than min_section_s into neighbours
-    cleaned: List[int] = [boundaries[0]]
+    cleaned: list[int] = [boundaries[0]]
     for b in boundaries[1:-1]:
         if b - cleaned[-1] >= min_gap and boundaries[-1] - b >= min_gap // 2:
             cleaned.append(b)
@@ -84,12 +82,12 @@ def detect_sections(
 
     # labels: rank by energy, spread across SECTION_LABELS
     order = sorted(range(len(energies)), key=lambda i: energies[i])
-    labels: List[str] = [""] * len(energies)
+    labels: list[str] = [""] * len(energies)
     for rank, idx in enumerate(order):
         pos = rank / max(1, len(order) - 1)
         labels[idx] = SECTION_LABELS[round(pos * (len(SECTION_LABELS) - 1))]
 
-    sections: List[Section] = []
+    sections: list[Section] = []
     for i, (a, b) in enumerate(zip(cleaned, cleaned[1:])):
         sections.append(
             Section(

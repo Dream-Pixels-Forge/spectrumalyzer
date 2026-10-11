@@ -8,7 +8,8 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
+
 from spectrumalyzer.model import AnalysisResult, time_to_frame
 
 
@@ -20,7 +21,7 @@ def _require_fps(result: AnalysisResult) -> float:
 
 def render(result: AnalysisResult) -> str:
     fps = _require_fps(result)
-    data: Dict[str, Any] = {
+    data: dict[str, Any] = {
         "bpm": round(result.bpm, 2),
         "bpmConfidence": round(result.bpm_confidence, 3),
         "fps": int(fps) if fps == int(fps) else fps,
@@ -48,7 +49,7 @@ def render(result: AnalysisResult) -> str:
     return json.dumps(data, indent=2)
 
 
-def extras(result: AnalysisResult, base: str = "song") -> Dict[str, str]:
+def extras(result: AnalysisResult, base: str = "song") -> dict[str, str]:
     """Companion React hook: useBeats() for beat-synced components.
 
     ``base`` is the output base path (no extension); filenames derive from it.

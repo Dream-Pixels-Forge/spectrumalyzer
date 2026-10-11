@@ -11,7 +11,7 @@ CLI:
 """
 
 from spectrumalyzer._version import __version__
-from spectrumalyzer.model import AnalysisResult, Beat, Section
 from spectrumalyzer.api import analyze
+from spectrumalyzer.model import AnalysisResult, Beat, Section
 
-__all__ = ["analyze", "AnalysisResult", "Beat", "Section", "__version__"]
+__all__ = ["AnalysisResult", "Beat", "Section", "__version__", "analyze"]

@@ -7,8 +7,6 @@ layers and keyframes to.
 
 from __future__ import annotations
 
-from typing import List
-
 from spectrumalyzer.model import AnalysisResult
 
 
@@ -22,8 +20,8 @@ def render(result: AnalysisResult) -> str:
     _require_fps(result)
     fps = int(result.fps) if result.fps == int(result.fps) else result.fps
 
-    beat_times: List[str] = [f"{b.time:.4f}" for b in result.beat_grid]
-    onset_times: List[str] = [f"{o.time:.4f}" for o in result.onsets]
+    beat_times: list[str] = [f"{b.time:.4f}" for b in result.beat_grid]
+    onset_times: list[str] = [f"{o.time:.4f}" for o in result.onsets]
     section_lines = []
     for s in result.sections:
         section_lines.append(

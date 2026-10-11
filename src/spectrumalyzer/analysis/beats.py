@@ -13,8 +13,6 @@ raw onsets are kept separately as "hits" for accent-driven effects.
 
 from __future__ import annotations
 
-from typing import Dict, List, Tuple
-
 import numpy as np
 
 from spectrumalyzer.analysis.spectrum import (
@@ -57,7 +55,7 @@ def estimate_tempo(
     max_bpm: float = 200.0,
     n_fft: int = DEFAULT_N_FFT,
     hop: int = DEFAULT_HOP,
-) -> Tuple[float, float]:
+) -> tuple[float, float]:
     """Estimate BPM from the onset envelope via autocorrelation.
 
     Octave disambiguation: among lags whose score is within 0.9 of the best,
@@ -71,8 +69,8 @@ def estimate_tempo(
     env = onset_envelope(pcm, sample_rate, n_fft, hop)
     fps_env = _frames_per_second(sample_rate, hop)
 
-    min_lag = max(2, int(round(fps_env * 60.0 / max_bpm)))
-    max_lag = min(len(env) - 2, int(round(fps_env * 60.0 / min_bpm)))
+    min_lag = max(2, round(fps_env * 60.0 / max_bpm))
+    max_lag = min(len(env) - 2, round(fps_env * 60.0 / min_bpm))
     if max_lag <= min_lag or len(env) < max_lag * 3:
         return 0.0, 0.0
 
@@ -126,7 +124,7 @@ def lowband_envelope(pcm: np.ndarray, sample_rate: int, cutoff_hz: float = 250.0
     return _smooth(env, 3)
 
 
-def pick_onsets(env: np.ndarray, sample_rate: int, hop: int = DEFAULT_HOP) -> List[Beat]:
+def pick_onsets(env: np.ndarray, sample_rate: int, hop: int = DEFAULT_HOP) -> list[Beat]:
     """Adaptive-threshold onset picking -> raw transient hits with strengths."""
     if len(env) < 3:
         return []
@@ -140,14 +138,14 @@ def pick_onsets(env: np.ndarray, sample_rate: int, hop: int = DEFAULT_HOP) -> Li
     local_mean = np.convolve(env, kernel, mode="same")
     threshold = np.maximum(0.06 * env_max, local_mean * 1.4)
 
-    candidates: List[Tuple[int, float]] = []
+    candidates: list[tuple[int, float]] = []
     for i in range(2, len(env) - 2):
         if env[i] > env[i - 1] and env[i] >= env[i + 1] and env[i] > threshold[i]:
             candidates.append((i, float(env[i])))
 
     # enforce min distance, keeping the strongest peaks
     candidates.sort(key=lambda c: -c[1])
-    chosen: List[int] = []
+    chosen: list[int] = []
     for idx, _ in candidates:
         if all(abs(idx - c) >= min_distance for c in chosen):
             chosen.append(idx)
@@ -179,7 +177,7 @@ def _phase_from_onsets(onsets, period_frames: float, fps_env: float):
     return (mean_angle / (2.0 * math.pi)) % 1.0 * period_frames
 
 
-def _phase_from_envelope(env: np.ndarray, period_frames: float) -> Tuple[float, float]:
+def _phase_from_envelope(env: np.ndarray, period_frames: float) -> tuple[float, float]:
     """Brute-force phase: maximize envelope energy sampled on the grid."""
     n = len(env)
     best_offset, best_score = 0.0, -1.0
@@ -200,7 +198,7 @@ def detect_beats(
     min_bpm: float = 60.0,
     max_bpm: float = 200.0,
     duration: float = 0.0,
-) -> Dict[str, object]:
+) -> dict[str, object]:
     """Full beat analysis: onsets, BPM, phase-locked uniform beat grid."""
     env = onset_envelope(pcm, sample_rate)
     fps_env = _frames_per_second(sample_rate, DEFAULT_HOP)
@@ -211,7 +209,7 @@ def detect_beats(
     if duration <= 0:
         duration = len(pcm) / sample_rate
 
-    grid: List[Beat] = []
+    grid: list[Beat] = []
     if bpm > 0 and duration > 0:
         period_frames = 60.0 / bpm * fps_env
         n = len(env)

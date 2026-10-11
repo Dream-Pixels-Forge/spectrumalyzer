@@ -2,10 +2,9 @@
 
 from __future__ import annotations
 
-
-from spectrumalyzer.audio import load
-from spectrumalyzer.analysis.structure import detect_sections
 from spectrumalyzer.analysis.features import loudness_envelope, waveform_peaks
+from spectrumalyzer.analysis.structure import detect_sections
+from spectrumalyzer.audio import load
 
 
 def test_two_sections_detected(two_sections):
@@ -38,14 +37,14 @@ def test_sections_cover_track(two_sections):
 
 
 def test_loudness_envelope_shape(bass_sine):
-    pcm, duration, sr = load(str(bass_sine))
+    pcm, _duration, sr = load(str(bass_sine))
     env = loudness_envelope(pcm, sr)
     assert len(env) >= 10
     assert all(0.0 <= v <= 1.0 for v in env)
 
 
 def test_loudness_envelope_reflects_energy(two_sections):
-    pcm, duration, sr = load(str(two_sections))
+    pcm, _duration, sr = load(str(two_sections))
     env = loudness_envelope(pcm, sr)
     half = len(env) // 2
     quiet = sum(env[:half]) / max(1, half)
@@ -54,7 +53,7 @@ def test_loudness_envelope_reflects_energy(two_sections):
 
 
 def test_waveform_peaks(bass_sine):
-    pcm, duration, sr = load(str(bass_sine))
+    pcm, _duration, _sr = load(str(bass_sine))
     peaks = waveform_peaks(pcm, buckets=200)
     assert len(peaks) == 200
     assert all(0.0 <= v <= 1.0 for v in peaks)

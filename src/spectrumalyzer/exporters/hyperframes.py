@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 
 from spectrumalyzer.model import AnalysisResult, time_to_frame
 
@@ -46,7 +46,7 @@ def render(result: AnalysisResult) -> str:
         })
     events.sort(key=lambda e: (e["frame"], e["type"]))
 
-    data: Dict[str, Any] = {
+    data: dict[str, Any] = {
         "bpm": round(result.bpm, 2),
         "fps": int(fps) if fps == int(fps) else fps,
         "durationInFrames": time_to_frame(result.duration, fps),
@@ -62,7 +62,7 @@ def render(result: AnalysisResult) -> str:
     return json.dumps(data, indent=2)
 
 
-def extras(result: AnalysisResult, base: str = "song") -> Dict[str, str]:
+def extras(result: AnalysisResult, base: str = "song") -> dict[str, str]:
     data_name = Path(base).name + ".hyperframes.json"
     snippet = f"""<!-- spectrumalyzer x HyperFrames — beat-reactive composition -->
 <!--

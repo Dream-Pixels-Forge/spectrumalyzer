@@ -2,12 +2,10 @@
 
 from __future__ import annotations
 
-from typing import List
-
 import numpy as np
 
 
-def loudness_envelope(pcm: np.ndarray, sample_rate: int, hop: int = 512) -> List[float]:
+def loudness_envelope(pcm: np.ndarray, sample_rate: int, hop: int = 512) -> list[float]:
     """Normalized RMS loudness per analysis frame (0..1)."""
     n = len(pcm)
     n_frames = n // hop
@@ -19,13 +17,12 @@ def loudness_envelope(pcm: np.ndarray, sample_rate: int, hop: int = 512) -> List
     return np.clip(rms / peak, 0.0, 1.0).tolist()
 
 
-def waveform_peaks(pcm: np.ndarray, buckets: int = 400) -> List[float]:
+def waveform_peaks(pcm: np.ndarray, buckets: int = 400) -> list[float]:
     """Max-abs amplitude per bucket — a compact waveform for visualization."""
     n = len(pcm)
     if n == 0 or buckets <= 0:
         return []
-    if n < buckets:
-        buckets = n
+    buckets = min(buckets, n)
     trimmed = pcm[: (n // buckets) * buckets]
     bucketed = trimmed.reshape(buckets, -1)
     peaks = np.abs(bucketed).max(axis=1)

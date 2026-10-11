@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from typing import Optional
-
 from spectrumalyzer._version import __version__
 from spectrumalyzer.analysis.beats import detect_beats
 from spectrumalyzer.analysis.features import loudness_envelope, waveform_peaks
@@ -15,7 +13,7 @@ from spectrumalyzer.model import AnalysisResult
 
 def analyze(
     path: str,
-    fps: Optional[float] = None,
+    fps: float | None = None,
     bands: bool = True,
     sections: bool = True,
     min_bpm: float = 60.0,

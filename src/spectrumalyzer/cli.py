@@ -142,7 +142,7 @@ def cmd_analyze(args: argparse.Namespace) -> int:
         out_path = export_filename(result, fmt, base=base)
         Path(out_path).write_text(export(result, fmt), encoding="utf-8")
         written.append(out_path)
-        base_stem = out_path[: -len(FORMATS[fmt].suffix)] if out_path.endswith(FORMATS[fmt].suffix) else out_path
+        base_stem = out_path.removesuffix(FORMATS[fmt].suffix)
         for extra_suffix, content in extra_files(result, fmt, base=base_stem).items():
             extra_path = str(Path(out_path).parent / (Path(base_stem).name + extra_suffix))
             Path(extra_path).write_text(content, encoding="utf-8")

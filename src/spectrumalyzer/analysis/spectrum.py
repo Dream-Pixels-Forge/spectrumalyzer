@@ -6,8 +6,6 @@ with an actual Short-Time Fourier Transform.
 
 from __future__ import annotations
 
-from typing import List, Tuple
-
 import numpy as np
 
 from spectrumalyzer.model import BAND_EDGES_HZ, BandData
@@ -25,7 +23,7 @@ def compute_stft(
     sample_rate: int,
     n_fft: int = DEFAULT_N_FFT,
     hop: int = DEFAULT_HOP,
-) -> Tuple[np.ndarray, int]:
+) -> tuple[np.ndarray, int]:
     """Short-Time Fourier Transform magnitudes.
 
     Returns:
@@ -67,8 +65,8 @@ def compute_bands(
     nyquist = sample_rate / 2.0
     global_max = float(power.max()) or 1.0
 
-    rows: List[List[float]] = []
-    band_cols: List[np.ndarray] = []
+    rows: list[list[float]] = []
+    band_cols: list[np.ndarray] = []
     for name, lo, hi in BAND_EDGES_HZ:
         hi = min(hi, nyquist)
         if lo >= nyquist:
@@ -93,7 +91,7 @@ def compute_bands(
     return BandData(sample_rate=sample_rate, hop=hop, matrix=rows)
 
 
-def spectral_centroid(mags: np.ndarray, sample_rate: int, n_fft: int = DEFAULT_N_FFT) -> List[float]:
+def spectral_centroid(mags: np.ndarray, sample_rate: int, n_fft: int = DEFAULT_N_FFT) -> list[float]:
     """Brightness of the sound per frame, in Hz (higher = crisper/sparklier)."""
     freqs = np.fft.rfftfreq(n_fft, d=1.0 / sample_rate)
     total = mags.sum(axis=0)

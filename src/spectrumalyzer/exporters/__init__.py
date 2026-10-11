@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Callable, Dict, Optional
+from typing import Callable
 
 from spectrumalyzer.exporters import (
     aftereffects,
@@ -24,10 +24,10 @@ class ExporterSpec:
     description: str
     render: Callable[[AnalysisResult], str]
     requires_fps: bool = False
-    extras: Optional[Callable[[AnalysisResult], Dict[str, str]]] = None
+    extras: Callable[[AnalysisResult], dict[str, str]] | None = None
 
 
-FORMATS: Dict[str, ExporterSpec] = {
+FORMATS: dict[str, ExporterSpec] = {
     spec.name: spec
     for spec in [
         ExporterSpec(
@@ -70,7 +70,7 @@ def export(result: AnalysisResult, fmt: str) -> str:
     return spec.render(result)
 
 
-def export_filename(result: AnalysisResult, fmt: str, base: Optional[str] = None) -> str:
+def export_filename(result: AnalysisResult, fmt: str, base: str | None = None) -> str:
     """Default output filename for a format, derived from the audio path.
 
     Idempotent on the format's FINAL extension (e.g. '.csv' for the csv
@@ -87,7 +87,7 @@ def export_filename(result: AnalysisResult, fmt: str, base: Optional[str] = None
     return f"{stem}{spec.suffix}"
 
 
-def extra_files(result: AnalysisResult, fmt: str, base: Optional[str] = None) -> Dict[str, str]:
+def extra_files(result: AnalysisResult, fmt: str, base: str | None = None) -> dict[str, str]:
     """Companion files for a format (TS hooks, snippets).
 
     Returns a mapping of filename suffix (starting with '.') to content, so the

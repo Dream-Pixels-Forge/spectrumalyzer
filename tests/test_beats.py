@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import pytest
 
-from spectrumalyzer.audio import load
 from spectrumalyzer.analysis.beats import detect_beats, estimate_tempo
+from spectrumalyzer.audio import load
 
 
 @pytest.mark.parametrize(
@@ -14,7 +14,7 @@ from spectrumalyzer.analysis.beats import detect_beats, estimate_tempo
 )
 def test_tempo_within_3_bpm(fixture, expected_bpm, request):
     path = request.getfixturevalue(fixture)
-    pcm, duration, sr = load(str(path))
+    pcm, _duration, sr = load(str(path))
     bpm, confidence = estimate_tempo(pcm, sr)
     assert abs(bpm - expected_bpm) <= 3.0, f"got {bpm:.1f}, want {expected_bpm}"
     assert 0.0 <= confidence <= 1.0
@@ -75,8 +75,9 @@ def _make_kick_hat_track(path):
     Hats have HIGHER spectral flux than kicks, so a naive phase lock lands on
     the off-beat. The grid must lock onto the KICKS (low-frequency energy).
     """
-    import numpy as np
     import wave as _wave
+
+    import numpy as np
 
     sr = 44100
     n = 20 * sr
@@ -106,11 +107,11 @@ def test_beat_grid_locks_to_kicks_not_hats(tmp_path):
     """Regression: hats (off-beat noise) have more flux than kicks, but the
     beat grid must anchor on the low-frequency kick pulse."""
     path = _make_kick_hat_track(tmp_path / "kickhat.wav")
-    pcm, duration, sr = load(str(path))
+    pcm, _duration, sr = load(str(path))
     result = detect_beats(pcm, sr)
     beats = result["beat_grid"]
     assert len(beats) >= 15
     # every KICK (integer seconds) must land on the grid within 60 ms
-    for kick_t in [1.0 + k for k in range(0, 18)]:
+    for kick_t in [1.0 + k for k in range(18)]:
         nearest = min(beats, key=lambda b: abs(b.time - kick_t)).time
         assert abs(nearest - kick_t) < 0.06, f"kick {kick_t}s vs grid {nearest}s"

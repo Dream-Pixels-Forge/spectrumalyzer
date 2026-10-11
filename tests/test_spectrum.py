@@ -2,14 +2,13 @@
 
 from __future__ import annotations
 
-
+from spectrumalyzer.analysis.spectrum import BAND_EDGES_HZ, compute_bands, compute_stft
 from spectrumalyzer.audio import load
-from spectrumalyzer.analysis.spectrum import compute_bands, compute_stft, BAND_EDGES_HZ
 
 
 def test_stft_shape_and_frequencies(bass_sine):
     pcm, duration, sr = load(str(bass_sine))
-    mags, hop = compute_stft(pcm, sr, n_fft=1024, hop=512)
+    mags, _hop = compute_stft(pcm, sr, n_fft=1024, hop=512)
     n_freq, n_frames = mags.shape
     # half-spectrum bins for a real signal
     assert n_freq == 513          # 1024-point FFT -> 512 + 1 bins

@@ -11,7 +11,7 @@ Time units:
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 # Ordered low -> high. Creative mapping cheat sheet:
 #   sub     -> room-shaking rumble, camera shake
@@ -23,7 +23,7 @@ from typing import Any, Dict, List, Optional, Tuple
 BAND_NAMES = ("sub", "bass", "lowMid", "mid", "highMid", "treble")
 
 # Default band edges in Hz (Nyquist permitting; upper edge is clamped).
-BAND_EDGES_HZ: Tuple[Tuple[str, float, float], ...] = (
+BAND_EDGES_HZ: tuple[tuple[str, float, float], ...] = (
     ("sub", 20.0, 60.0),
     ("bass", 60.0, 250.0),
     ("lowMid", 250.0, 500.0),
@@ -38,7 +38,7 @@ SECTION_LABELS = ("quiet", "mid", "high", "peak")
 
 def time_to_frame(t: float, fps: float) -> int:
     """Convert seconds to a frame index (round-to-nearest, never negative)."""
-    return max(0, int(round(t * fps)))
+    return max(0, round(t * fps))
 
 
 @dataclass
@@ -47,10 +47,10 @@ class Beat:
 
     time: float  # seconds
     strength: float = 1.0  # 0..1 normalized onset strength
-    frame: Optional[int] = None  # filled when fps was requested
+    frame: int | None = None  # filled when fps was requested
 
-    def to_dict(self, fps: Optional[float] = None) -> Dict[str, Any]:
-        d: Dict[str, Any] = {"time": round(self.time, 4), "strength": round(self.strength, 3)}
+    def to_dict(self, fps: float | None = None) -> dict[str, Any]:
+        d: dict[str, Any] = {"time": round(self.time, 4), "strength": round(self.strength, 3)}
         f = self.frame if self.frame is not None else (
             time_to_frame(self.time, fps) if fps else None
         )
@@ -72,8 +72,8 @@ class Section:
     def duration(self) -> float:
         return self.end - self.start
 
-    def to_dict(self, fps: Optional[float] = None) -> Dict[str, Any]:
-        d: Dict[str, Any] = {
+    def to_dict(self, fps: float | None = None) -> dict[str, Any]:
+        d: dict[str, Any] = {
             "start": round(self.start, 3),
             "end": round(self.end, 3),
             "duration": round(self.duration, 3),
@@ -96,29 +96,29 @@ class BandData:
 
     sample_rate: int
     hop: int
-    matrix: List[List[float]] = field(default_factory=list)
+    matrix: list[list[float]] = field(default_factory=list)
 
     @property
     def frame_duration(self) -> float:
         return self.hop / self.sample_rate
 
-    def row_at(self, t: float) -> List[float]:
+    def row_at(self, t: float) -> list[float]:
         """Band energies at time ``t`` (nearest analysis frame)."""
         if not self.matrix:
             return [0.0] * len(BAND_NAMES)
-        idx = min(len(self.matrix) - 1, max(0, int(round(t / self.frame_duration))))
+        idx = min(len(self.matrix) - 1, max(0, round(t / self.frame_duration)))
         return self.matrix[idx]
 
-    def resample_to_fps(self, fps: float, duration: float) -> List[List[float]]:
+    def resample_to_fps(self, fps: float, duration: float) -> list[list[float]]:
         """Linear-resample rows to one row per video frame (fps * duration rows)."""
         import math
 
-        n = max(1, int(math.ceil(duration * fps)))
-        out: List[List[float]] = []
+        n = max(1, math.ceil(duration * fps))
+        out: list[list[float]] = []
         src = self.matrix or [[0.0] * len(BAND_NAMES)]
         for i in range(n):
             pos = (i + 0.5) / fps / self.frame_duration  # centre of video frame
-            lo = int(math.floor(pos))
+            lo = math.floor(pos)
             hi = min(len(src) - 1, lo + 1)
             frac = pos - lo
             lo = min(lo, len(src) - 1)
@@ -129,7 +129,7 @@ class BandData:
             out.append(row)
         return out
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "names": list(BAND_NAMES),
             "frameDuration": round(self.frame_duration, 6),
@@ -146,15 +146,15 @@ class AnalysisResult:
     sample_rate: int
     bpm: float
     bpm_confidence: float  # 0..1 autocorrelation peak sharpness
-    beat_grid: List[Beat] = field(default_factory=list)  # quantized, uniform spacing
-    onsets: List[Beat] = field(default_factory=list)  # raw transients / hits
-    sections: List[Section] = field(default_factory=list)
-    bands: Optional[BandData] = None
-    centroid: List[float] = field(default_factory=list)  # per analysis frame, Hz
-    loudness: List[float] = field(default_factory=list)  # per analysis frame, 0..1
-    waveform_peaks: List[float] = field(default_factory=list)  # downsampled for viz
-    fps: Optional[float] = None  # set when frame numbers were requested
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    beat_grid: list[Beat] = field(default_factory=list)  # quantized, uniform spacing
+    onsets: list[Beat] = field(default_factory=list)  # raw transients / hits
+    sections: list[Section] = field(default_factory=list)
+    bands: BandData | None = None
+    centroid: list[float] = field(default_factory=list)  # per analysis frame, Hz
+    loudness: list[float] = field(default_factory=list)  # per analysis frame, 0..1
+    waveform_peaks: list[float] = field(default_factory=list)  # downsampled for viz
+    fps: float | None = None  # set when frame numbers were requested
+    metadata: dict[str, Any] = field(default_factory=dict)
 
     # ---- convenience -----------------------------------------------------
     @property
@@ -166,22 +166,22 @@ class AnalysisResult:
     def beat_count(self) -> int:
         return len(self.beat_grid)
 
-    def beats_as_frames(self, fps: Optional[float] = None) -> List[int]:
+    def beats_as_frames(self, fps: float | None = None) -> list[int]:
         f = fps or self.fps
         if not f:
             raise ValueError("No fps available — pass fps to analyze() or the CLI --fps flag")
         return [time_to_frame(b.time, f) for b in self.beat_grid]
 
-    def band_rows_at_fps(self, fps: Optional[float] = None) -> Optional[List[List[float]]]:
+    def band_rows_at_fps(self, fps: float | None = None) -> list[list[float]] | None:
         f = fps or self.fps
         if self.bands is None or not f:
             return None
         return self.bands.resample_to_fps(f, self.duration)
 
     # ---- serialization ----------------------------------------------------
-    def to_dict(self, fps: Optional[float] = None, include_analysis: bool = True) -> Dict[str, Any]:
+    def to_dict(self, fps: float | None = None, include_analysis: bool = True) -> dict[str, Any]:
         f = fps or self.fps
-        d: Dict[str, Any] = {
+        d: dict[str, Any] = {
             "bpm": round(self.bpm, 2),
             "bpmConfidence": round(self.bpm_confidence, 3),
             "duration": round(self.duration, 3),
@@ -202,7 +202,7 @@ class AnalysisResult:
         d["metadata"] = dict(self.metadata)
         return d
 
-    def to_legacy_dict(self) -> Dict[str, Any]:
+    def to_legacy_dict(self) -> dict[str, Any]:
         """Backwards-compatible shape for v0.1.0 consumers (beats/bpm/beatTimes)."""
         return {
             "bpm": round(self.bpm, 2),
