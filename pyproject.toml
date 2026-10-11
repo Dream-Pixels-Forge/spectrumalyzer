@@ -1,0 +1,59 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "spectrumalyzer"
+version = "0.2.0"
+description = "Audio-reactive analysis toolkit for motion graphics — real spectral flux beat detection, frequency bands, song sections, and frame-native exports for Remotion, HyperFrames, After Effects, FCPXML and CSV workflows"
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+authors = [{ name = "Dream-Pixels-Forge" }]
+keywords = [
+    "audio", "beat-detection", "bpm", "spectral-analysis", "onset-detection",
+    "motion-graphics", "remotion", "hyperframes", "after-effects", "fcpxml",
+    "audio-reactive", "music", "video-editing",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: End Users/Desktop",
+    "Topic :: Multimedia :: Sound/Audio :: Analysis",
+    "Topic :: Multimedia :: Video",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+]
+dependencies = [
+    "numpy>=1.24",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "ruff>=0.4",
+]
+
+[project.scripts]
+spectrumalyzer = "spectrumalyzer.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/Dream-Pixels-Forge/spectrumalyzer"
+Repository = "https://github.com/Dream-Pixels-Forge/spectrumalyzer"
+Issues = "https://github.com/Dream-Pixels-Forge/spectrumalyzer/issues"
+Changelog = "https://github.com/Dream-Pixels-Forge/spectrumalyzer/blob/master/CHANGELOG.md"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+
+[tool.ruff]
+line-length = 100
+target-version = "py39"
