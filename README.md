@@ -1,5 +1,13 @@
 # spectrumalyzer
 
+![spectrumalyzer banner](assets/Spectrumalyzer%20Audio%20Intelligence%20Banner.png)
+
+[![PyPI version](https://img.shields.io/pypi/v/spectrumalyzer)](https://pypi.org/project/spectrumalyzer/)
+[![PyPI downloads](https://img.shields.io/pypi/dm/spectrumalyzer)](https://pypi.org/project/spectrumalyzer/)
+[![Python](https://img.shields.io/pypi/pyversions/spectrumalyzer)](https://pypi.org/project/spectrumalyzer/)
+[![License: MIT](https://img.shields.io/github/license/Dream-Pixels-Forge/spectrumalyzer)](LICENSE)
+[![CI](https://img.shields.io/github/actions/workflow/status/Dream-Pixels-Forge/spectrumalyzer/ci.yml?label=ci)](.github/workflows/ci.yml)
+
 **Turn any song into animation-ready data.** Give it music — get beats, BPM,
 onsets, frequency bands, song sections and loudness, delivered in the exact
 format your creative tool speaks: Remotion, HyperFrames, After Effects,
