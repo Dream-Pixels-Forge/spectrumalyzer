@@ -119,3 +119,19 @@ versioning follows [Semantic Versioning](https://semver.org/).
 - README skill-install command: the skills CLI takes `owner/repo/subpath`,
   not GitHub's `tree/<branch>/` URL syntax (verified live — found + installed
   the skill to 13 agent platforms).
+
+## [Unreleased] — trimmer (v0.6.0)
+
+### Added
+- **Trimmer** — make a short version of a long track for video use:
+  - `spectrumalyzer trim AUDIO_OR_VIDEO [--length 90] [-o out.mp3]
+    [--crossfade 0.5] [--preview]` — picks the most worthwhile window
+    (loudness + onset density + section energy), snaps the cuts to the beat
+    grid, and cuts the source with ffmpeg (short crossfades, no clicks).
+  - Works on video files: the video is cut to the same window.
+  - No-op with an honest notice when the track is already short enough.
+- Python API: `spectrumalyzer.trim(path, target_seconds, output, crossfade)`
+  plus `select_trim_window` / `trim_audio` / `TrimSelection` (pure window
+  selection is unit-testable without ffmpeg).
+- MCP tool `trim_audio` (structured window + reasons + written file).
+- 15 new tests (window-selection logic + real ffmpeg cuts).

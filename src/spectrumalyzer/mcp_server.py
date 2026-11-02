@@ -37,6 +37,7 @@ TOOL_NAMES = (
     "export_beats",
     "render_report",
     "model_status",
+    "trim_audio",
 )
 
 
@@ -254,6 +255,52 @@ def create_server() -> FastMCP:
             "installed": EmbeddingBackend.downloaded_name(),
             "version": __version__,
         })
+
+    @mcp.tool()
+    def trim_audio(
+        path: str,
+        length_s: float = 90.0,
+        output: str | None = None,
+        crossfade_s: float = 0.5,
+        preview: bool = False,
+    ) -> str:
+        """Cut the best short version of a long track (or video) for video use.
+
+        Picks the most worthwhile window of length_s (loudness + onset density
+        + section energy, cuts snapped to the beat grid) and cuts the source
+        with ffmpeg. If the source is a video, the video is cut to the same
+        window. Returns the window, why it was chosen, and the written file
+        (skipped when the track is already short enough or preview=true).
+        """
+        p = Path(path)
+        if not p.exists():
+            return _err("file_not_found", path=path)
+        try:
+            from spectrumalyzer.api import analyze
+            from spectrumalyzer.trimmer import default_output_path, select_trim_window
+            from spectrumalyzer.trimmer import trim_audio as cut
+
+            result = analyze(str(p))
+            sel = select_trim_window(result, length_s)
+            written: str | None = None
+            if not preview and sel.trimmed:
+                written = cut(
+                    str(p),
+                    output or default_output_path(str(p)),
+                    sel.start,
+                    sel.end,
+                    crossfade=crossfade_s,
+                )
+            return json.dumps(
+                {
+                    "selection": sel.to_dict(),
+                    "sourceDuration": round(result.duration, 3),
+                    "output": written,
+                    "skipped": (not sel.trimmed) or preview or not written,
+                }
+            )
+        except Exception as exc:  # noqa: BLE001 — surface ffmpeg/decoder errors to the agent
+            return _err("trim_failed", detail=str(exc))
 
     @mcp.resource("spectrumalyzer://formats")
     def formats() -> str:

@@ -171,10 +171,39 @@ def build_parser() -> argparse.ArgumentParser:
         "mcp",
         help="Run the MCP server (stdio) — spectrumalyzer as tools for AI agents",
         description=(
-            "Expose analyze/describe/find/export/report as MCP tools over stdio. "
+            "Expose analyze/describe/find/export/report/trim as MCP tools over stdio. "
             'Register with: {"command": "spectrumalyzer", "args": ["mcp"]}'
         ),
     )
+
+    # ---- trim (short version for video) --------------------------------------
+    p_trim = sub.add_parser(
+        "trim",
+        help="Cut the best short version of a long track (or video)",
+        description=(
+            "Pick the most worthwhile window of a target length (loudness + onset "
+            "density + section energy, cuts snapped to the beat) and cut the source "
+            "with ffmpeg. Works on video files too — the video is cut to the same window."
+        ),
+    )
+    p_trim.add_argument("audio", help="Audio (or video) file")
+    p_trim.add_argument(
+        "--length", type=float, default=90.0,
+        help="Target length of the short version in seconds (default 90)",
+    )
+    p_trim.add_argument(
+        "-o", "--output", default=None,
+        help="Output path (default: <name>-short.mp3 next to the source)",
+    )
+    p_trim.add_argument(
+        "--crossfade", type=float, default=0.5,
+        help="Fade in/out seconds at the cut points (default 0.5, 0 disables)",
+    )
+    p_trim.add_argument(
+        "--preview", action="store_true",
+        help="Only print the chosen window; do not cut anything",
+    )
+    p_trim.add_argument("-q", "--quiet", action="store_true", help="Suppress progress output")
 
     return parser
 
@@ -423,6 +452,43 @@ def cmd_find(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_trim(args: argparse.Namespace) -> int:
+    from spectrumalyzer.api import analyze
+    from spectrumalyzer.trimmer import default_output_path, select_trim_window, trim_audio
+
+    audio = Path(args.audio)
+    if not audio.exists():
+        print(f"Error: file not found: {audio}", file=sys.stderr)
+        return 1
+
+    _log(args.quiet, f"Analyzing {audio.name} …")
+    result = analyze(str(audio))
+    selection = select_trim_window(result, args.length)
+    _log(
+        args.quiet,
+        f"Window: {selection.start:7.2f}s → {selection.end:7.2f}s "
+        f"({selection.duration:.1f}s of {result.duration:.1f}s)",
+    )
+    for r in selection.reasons:
+        _log(args.quiet, f"  · {r}")
+
+    if args.preview:
+        return 0
+
+    if not selection.trimmed:
+        _log(args.quiet, "Nothing to trim — track is already short enough.")
+        return 0
+
+    out = args.output or default_output_path(str(audio))
+    try:
+        trim_audio(str(audio), out, selection.start, selection.end, crossfade=args.crossfade)
+    except Exception as exc:  # noqa: BLE001 — surface ffmpeg/IO errors to the user
+        print(f"Error: {exc}", file=sys.stderr)
+        return 1
+    _log(args.quiet, f"Short version written: {out}")
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
@@ -442,6 +508,8 @@ def main(argv: list[str] | None = None) -> int:
         return cmd_describe(args)
     if args.command == "find":
         return cmd_find(args)
+    if args.command == "trim":
+        return cmd_trim(args)
     parser.print_help()
     return 1
 

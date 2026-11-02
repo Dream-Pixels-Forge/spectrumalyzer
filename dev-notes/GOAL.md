@@ -60,3 +60,11 @@ Transform spectrumalyzer into a real audio-reactive toolkit for creative users:
 ## v0.5.1/0.5.2 addition: docs & canonical URLs — SHIPPED
 - [x] Default branch `master` → `main`; PyPI project links updated
 - [x] Skill-install command verified live: `npx skills add owner/repo/subpath` (tree/ syntax unsupported)
+
+## v0.6.0: trimmer — short versions for video (2026-11-02)
+- [x] `spectrumalyzer trim` picks the best window of a target length (loudness + onset density + section energy), cuts on the beat grid
+- [x] Works on video files too — video cut to the same window
+- [x] Honest no-op when the track is already short enough; `--preview` for window-only
+- [x] Python API `trim()` + MCP `trim_audio` tool
+- [x] 109 tests green, ruff clean; verified end-to-end on synthetic song + mp4
+- [ ] Release v0.6.0 (version bump + tag + PyPI, on user's go)

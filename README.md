@@ -93,7 +93,8 @@ flowchart LR
 | `model` | the data contract: `AnalysisResult`, `Beat`, `Section`, `BandData` + frame math |
 | `exporters` | one pure renderer per output format + companion files |
 | `report` | self-contained HTML visualization |
-| `cli` | `analyze`, `report`, `formats` commands |
+| `trimmer` | best short-window selection + ffmpeg cut (short versions for video) |
+| `cli` | `analyze`, `report`, `formats`, `trim`, `model`, `describe`, `find`, `mcp` |
 
 ---
 
@@ -143,7 +144,7 @@ ffmpeg -version             # decoder is reachable
 spectrumalyzer model status # embedding model state
 ```
 
-## The three commands
+## Core commands
 
 ### 1. `analyze` — the workhorse
 
@@ -188,6 +189,39 @@ spectrumalyzer formats
 ```
 
 Lists every export format, its file suffix and what it's for.
+
+### 4. `trim` — a short version for video
+
+```bash
+spectrumalyzer trim AUDIO_OR_VIDEO [--length 90] [-o out.mp3] [--crossfade 0.5] [--preview]
+```
+
+Video tools and AI video models take short clips, not full songs. `trim`
+picks the **most worthwhile window** of your target length — loudness +
+onset density + section energy, cuts snapped to the beat grid — and cuts the
+source with ffmpeg (short crossfades, no clicks).
+
+| Option | Default | What it does |
+|---|---|---|
+| `--length N` | 90 | Target length of the short version, in seconds |
+| `-o, --output PATH` | `<name>-short.mp3` next to the source | Output path (container/codec follows the extension) |
+| `--crossfade SEC` | 0.5 | Fade in/out at the cut points (0 disables) |
+| `--preview` | off | Only print the chosen window; cut nothing |
+
+**Example — a 90 s bed for a video, from the full song:**
+
+```bash
+spectrumalyzer trim song.mp3 --length 90 -o bed.mp3
+# Window: 37.50s → 127.50s (90.0s of 203.4s)
+#   · best 90s window of 203s by loudness + onset density + section energy
+#   · window covers the strongest overlapping section ('peak' section)
+#   · cut points snapped to the beat grid
+# Short version written: bed.mp3
+```
+
+If the source is a **video** file, the video is cut to the same window too:
+`spectrumalyzer trim movie.mp4 --length 60 -o clip.mp4`. When the track is
+already short enough, `trim` says so and writes nothing.
 
 ---
 
@@ -295,6 +329,10 @@ result.beats_as_frames()      # [15, 53, 91, ...]  at 30 fps
 result.band_rows_at_fps()     # one [sub..treble] row per video frame
 result.sections               # [Section(start, end, energy, label), ...]
 result.to_dict()              # JSON-ready dict
+
+# short version of a long track for video (best window + ffmpeg cut)
+from spectrumalyzer import trim
+sel, written = trim("song.mp3", 90)        # -> song-short.mp3 (None if already short)
 ```
 
 Every option from the CLI is a keyword argument (`bands=False`,
@@ -338,7 +376,7 @@ real `bands` matrix. `bpm`, `beats`, `beatTimes` are unchanged; see the
 git clone https://github.com/Dream-Pixels-Forge/spectrumalyzer
 cd spectrumalyzer
 pip install -e ".[dev]"      # pytest + ruff
-pytest                       # 44 tests, synthetic fixtures, fully offline
+pytest                       # synthetic fixtures, fully offline
 ruff check src tests
 ```
 
@@ -421,6 +459,7 @@ Once registered, the agent gets these tools natively:
 | `export_beats` | Writes Remotion / HyperFrames / AE / FCPXML / CSV deliverables |
 | `render_report` | Self-contained HTML visual report |
 | `model_status` | Embedding model state (diagnostics) |
+| `trim_audio` | Best short version of a long track/video for video use (window + ffmpeg cut) |
 
 All tools return structured `{"error": ...}` payloads instead of crashing, so
 agents can react gracefully. Everything runs locally.

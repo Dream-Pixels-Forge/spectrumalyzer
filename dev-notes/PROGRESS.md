@@ -4,8 +4,19 @@
 - Project: spectrumalyzer (Dev/cli)
 - Branch: `main`
 - Started: 2026-10-11
-- Current Phase: 3 (Engineer) — complete
-- Status: **completed / idle** — v0.5.2 shipped 2026-10-11, tree clean, main in sync with origin
+- Current Phase: 3 (Engineer)
+- Status: **in progress** — v0.6.0 trimmer (short versions for video); v0.5.2 shipped 2026-10-11
+
+## v0.6.0 Trimmer (2026-11-02, in progress)
+- [x] `spectrumalyzer trim AUDIO_OR_VIDEO --length N [-o] [--crossfade] [--preview]`
+- [x] Window selection: loudness + onset density + section energy, cuts snapped to beat grid
+      (`src/spectrumalyzer/trimmer.py` — pure logic, ffmpeg cut separate)
+- [x] Video support: mp4 source cut to the same window (audio + video)
+- [x] No-op notice when the track is already short enough
+- [x] Python API `trim()` + MCP tool `trim_audio`
+- [x] 15 new tests (109 total green, ruff clean); end-to-end verified on a 90 s track
+      (30 s target → chorus window 44.8–74.7 s) and an mp4
+- [ ] Version bump 0.6.0 + release (on user's go)
 
 ## Shipped Milestones
 - **v0.2.0** — "Creative Toolkit": real STFT/spectral-flux engine, 6 exporters, HTML report,

@@ -1,7 +1,7 @@
 ---
 name: spectrumalyzer
-description: Audio-reactive analysis toolkit for motion graphics — spectral-flux beat detection, BPM, 6 frequency bands, song sections, mood/genre tags, semantic library search, and frame-native exports for Remotion, HyperFrames, After Effects, FCPXML and CSV. Includes an MCP server so AI agents can use it as native tools. Use when syncing animation to music, analyzing audio for video projects, finding music by mood, or exporting beat data for creative tools.
-version: 0.5.0
+description: Audio-reactive analysis toolkit for motion graphics — spectral-flux beat detection, BPM, 6 frequency bands, song sections, mood/genre tags, semantic library search, best-window trimming (short versions for video), and frame-native exports for Remotion, HyperFrames, After Effects, FCPXML and CSV. Includes an MCP server so AI agents can use it as native tools. Use when syncing animation to music, analyzing audio for video projects, shortening long tracks for video, finding music by mood, or exporting beat data for creative tools.
+version: 0.6.0
 author: Dream-Pixels-Forge
 license: MIT
 metadata:
@@ -35,10 +35,26 @@ run `spectrumalyzer model pull` upfront. Model lives at
 ```bash
 spectrumalyzer analyze track.mp3 --fps 30 --format remotion,csv,ae   # beat data for a 30 fps project
 spectrumalyzer report track.mp3 -o report.html                       # visual HTML report
+spectrumalyzer trim song.mp3 --length 90 -o bed.mp3                   # best 90s window for video (cuts to beat grid)
 spectrumalyzer describe track.mp3                                    # NL description + mood/energy/genre tags
 spectrumalyzer find "calm warm bed for a documentary intro" ./lib    # semantic library search
-spectrumalyzer formats                                               # list export formats
+spectrumalyzer formats                                                # list export formats
 ```
+
+## Trimming a long track for video
+
+`trim` picks the most worthwhile window of a target length (loudness + onset
+density + section energy, cuts snapped to the beat grid) and cuts the source
+(audio **or video**) with ffmpeg:
+
+```bash
+spectrumalyzer trim song.mp3 --length 90 --preview   # just show the chosen window
+spectrumalyzer trim song.mp3 --length 90 -o bed.mp3  # cut it
+```
+
+When a full song is too long for a video: trim to the target length, then
+`analyze` the short version with `--fps` for your composition. If the track
+is already short enough, `trim` says so and writes nothing.
 
 ## MCP server (for AI agents)
 
@@ -53,7 +69,7 @@ Register with any MCP client:
 ```
 
 Tools: `analyze_audio`, `describe_audio`, `find_music`, `export_beats`,
-`render_report`, `model_status` + `spectrumalyzer://formats` resource.
+`render_report`, `model_status`, `trim_audio` + `spectrumalyzer://formats` resource.
 Structured `{error: ...}` responses — agents can react gracefully.
 
 ## Python API
