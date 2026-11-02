@@ -45,6 +45,11 @@
 
 ## 4. Next features (ranked for creative value)
 
+> Scoping note: the v0.3/v0.4/v0.5 labels below are the *original* feature scoping
+> from the v0.2.0 rebuild. v0.3.0–v0.5.2 have since shipped with different content
+> (semantic hearing layer, single install, MCP server — see CHANGELOG.md); none of
+> the items below shipped in those releases. They remain the v1.x backlog.
+
 ### v0.3 — musical intelligence
 - [ ] **Downbeat/bar detection** — kick-anchored phase gives the beat; add
       bar (4/4) grouping → exporters gain `barsInFrames` for measure-level

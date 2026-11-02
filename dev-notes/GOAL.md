@@ -35,7 +35,7 @@ Transform spectrumalyzer into a real audio-reactive toolkit for creative users:
 - [x] Click-track test: detected BPM within ±3 of 120
 - [x] No dead code from v0.1.0 remains (build_script.py, gui_report.py stub, root spectrumalyzer.py removed)
 
-## v0.3.0 addition (2026-10-11): semantic hearing layer — SHIPPED
+## v0.3.0 addition: semantic hearing layer — SHIPPED
 - [x] Embedding model lives at ~/.config/spectrumalyzer/embedding/ (XDG + SPECTRUMALYZER_HOME override)
 - [x] Default model google/embeddinggemma-300m (current small Gemma; gated → needs HF token), auto-fallback all-MiniLM-L6-v2 (non-gated, works out of the box)
 - [x] `model pull` / `model status` commands
@@ -48,7 +48,7 @@ Transform spectrumalyzer into a real audio-reactive toolkit for creative users:
 ## v0.4.0 addition: single install — SHIPPED
 - [x] Embedding stack ships in the base package (no separate install)
 
-## v0.5.0 addition (2026-10-11): MCP server — SHIPPED
+## v0.5.0 addition: MCP server — SHIPPED
 - [x] `spectrumalyzer mcp` — stdio MCP server (FastMCP), discoverable by any MCP client
 - [x] Tools: analyze_audio, describe_audio, find_music, export_beats, render_report, model_status
 - [x] Reuses embedding auto-pull lifecycle (shared with CLI, no duplication)
@@ -57,6 +57,6 @@ Transform spectrumalyzer into a real audio-reactive toolkit for creative users:
 - [x] Tests call tools via FastMCP.call_tool (real protocol layer, no mocking the protocol)
 - [x] Release v0.5.0 + MANDATORY three-way verification
 
-## v0.5.1/0.5.2: docs & canonical URLs — SHIPPED
+## v0.5.1/0.5.2 addition: docs & canonical URLs — SHIPPED
 - [x] Default branch `master` → `main`; PyPI project links updated
-- [x] Skill-install command verified live: `npx skills add owner/repo/skills` (tree/ syntax unsupported)
+- [x] Skill-install command verified live: `npx skills add owner/repo/subpath` (tree/ syntax unsupported)
