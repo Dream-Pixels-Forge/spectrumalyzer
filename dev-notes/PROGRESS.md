@@ -1,39 +1,46 @@
-# Pipeline Progress — spectrumalyzer v0.2.0 "Creative Toolkit"
+# Pipeline Progress — spectrumalyzer
 
 ## Current State
 - Project: spectrumalyzer (Dev/cli)
-- Branch: `feat/creative-toolkit` → merge to `master` when gates pass
+- Branch: `main`
 - Started: 2026-10-11
-- Current Phase: 3 (Engineer) — implementation
-- Status: in-progress
-- Execution note: no subagent dispatch runtime is available in this session's
-  toolset, so phase workers are executed inline, one phase at a time, with the
-  orchestrator gate checks between phases (artifact check + test suite).
+- Current Phase: 3 (Engineer) — complete
+- Status: **completed / idle** — v0.5.2 shipped 2026-10-11, tree clean, main in sync with origin
 
-## Phase Completion
+## Shipped Milestones
+- **v0.2.0** — "Creative Toolkit": real STFT/spectral-flux engine, 6 exporters, HTML report,
+  TDD cycles (see log below)
+- **v0.3.0** — semantic hearing: embedding layer (`describe`, `find`, `model pull/status`),
+  FakeEmbedder tests, real-model smoke test skipped in CI
+- **v0.4.0** — single install: embedding stack ships in the base package
+- **v0.5.0** — MCP server (FastMCP, stdio): analyze_audio, describe_audio, find_music,
+  export_beats, render_report, model_status; 93 tests green, wire test passed
+- **v0.5.1/0.5.2** — default branch `master` → `main`, canonical skill-install URL
+  (`npx skills add owner/repo/subpath` — verified live against 13 agent platforms)
+
+## Phase Completion (v0.2.0 pipeline)
 - [x] Phase 0: Bootstrap — GOAL.md with measurable gates (dev-notes/GOAL.md)
 - [x] Phase 1: Brainstorm/Investigation — code audit findings (fake spectrum,
-      dead params, stub files) + creative-user feature research (below)
+      dead params, stub files) + creative-user feature research
 - [x] Phase 2: Governance/Spec — GOAL.md verification gates set
-- [ ] Phase 3: Engineer
+- [x] Phase 3: Engineer
     - [x] Worker A: package skeleton + pyproject (PEP 621, src layout)
     - [x] Worker B: model.py + audio.py (dataclasses, ffmpeg decode)
     - [x] Worker C: analysis engine — TDD RED (14 failing) → GREEN (21 pass)
     - [x] Worker D: exporters ×6 — TDD RED (collect error) → GREEN (13 pass)
     - [x] Worker E: report + CLI — TDD RED (5 failing) → GREEN (43 pass)
-    - [ ] Worker F: docs (README, ROADMAP, CHANGELOG, SKILL.md) + ci.yml
-    - [ ] Gate: full suite green + real-audio end-to-end + lint
+    - [x] Worker F: docs (README, ROADMAP, CHANGELOG, SKILL.md) + ci.yml
+    - [x] Gate: full suite green + real-audio end-to-end + lint
 
-## Verification Gates (from GOAL.md)
-- [x] `pytest` — all green (44 passed, ruff clean)
-- [x] 6-format end-to-end on real audio (demo_track.wav: 8 files + report)
-- [x] HTML report opens with canvas + embedded payload (120 KB, verified)
-- [x] Click-track BPM within ±3 (120/90/140 all pass)
+## Verification Gates (current, v0.5.2)
+- [x] `pytest` — 93 passed, ruff clean (per release commit; CI green on main 2026-10-11)
+- [x] 6-format end-to-end on real audio (json, csv, remotion, ae, fcpxml, hyperframes + report)
+- [x] HTML report opens with canvas + embedded payload (120 KB, verified at v0.2.0 gates)
+- [x] Click-track BPM within ±3 (90/120/140 all pass)
 - [x] v0.1.0 dead code removed (build_script.py, gui_report.py, root spectrumalyzer.py)
-- [x] BONUS (found during gates): beat grid locked to off-beat hats → added
-      low-band kick-anchored phase lock (TDD cycle 6, test_beats.py regression)
+- [x] No open issues or PRs on GitHub
 
-## TDD Cycles Log
+## TDD Cycles Log (v0.2.0)
 | Cycle | RED | GREEN |
 |-------|-----|-------|
 | beats/tempo | 4 fail (module missing → impl) | estimate_tempo ±3 BPM on 90/120/140 click tracks |
@@ -43,14 +50,22 @@
 | filename idempotency | -o beats.json → .json.json | final-extension rule + regression test |
 
 ## Decisions Made
-- numpy is now a required dependency (real FFT/STFT is impossible in
-  reasonable pure-Python time; the v0.1.0 "no dependencies" claim came from
-  the broken implementation, not a real constraint)
+- numpy is a required dependency (real FFT/STFT is impossible in reasonable pure-Python time;
+  the v0.1.0 "no dependencies" claim came from the broken implementation, not a real constraint)
 - ffmpeg/ffprobe stay the only system dependency
-- Beat grid is phase-ambiguous modulo the period — tests assert
-  "clicks land on grid", not "grid starts at first click"
-- Breaking change for 0.2.0: fake `spectrum` key replaced by real `bands`;
+- Beat grid is phase-ambiguous modulo the period — tests assert "clicks land on grid",
+  not "grid starts at first click"
+- Breaking change in 0.2.0: fake `spectrum` key replaced by real `bands`;
   legacy `to_legacy_dict()` keeps bpm/beats/beatTimes consumers alive
+- v0.4.0: embedding stack in base package (single install) — `mcp` joined in v0.5.0;
+  `mcp<2` pinned (2.x renamed FastMCP to MCPServer — CI caught the skew)
+- Default branch renamed to `main` (v0.5.1); canonical install URL uses
+  `npx skills add owner/repo/subpath` (tree/ syntax unsupported)
 
 ## Blockers
 - none
+
+## Environment Note (dev machine, 2026-11-02)
+- `pip3` on this machine resolves to a pipx-managed pip venv, so `python3 -m pytest`
+  cannot import the package locally (93 tests verified via CI instead). For local runs,
+  create a project venv: `python3 -m venv .venv && .venv/bin/pip install -e .[dev]`.
