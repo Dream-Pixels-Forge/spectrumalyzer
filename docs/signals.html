@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Signals — what to animate with them — spectrumalyzer</title>
+  <meta name="description" content="spectrumalyzer's signals mapped to creative recipes: beat grid, onsets, frequency bands, centroid, loudness and sections — what to animate with each.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230a0b0d'/%3E%3Cpath d='M8 20c0-4 2-8 4-8s4 4 4 8-2 8-4 8-4-4-4-8zm8-6c0-2.5 1.5-5 3-5s3 2.5 3 5' stroke='%23ff7a1a' stroke-width='2.2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="./site.css">
+</head>
+<body>
+
+<nav class="nav">
+  <div class="nav-inner">
+    <a class="brand" href="./"><span class="logo-dot"></span>spectrum<b>alyzer</b></a>
+    <div class="nav-links">
+      <a href="./">Home</a>
+      <span class="nav-sep"></span>
+      <a href="./cli.html">CLI</a>
+      <a href="./api.html">Python API</a>
+      <a href="./formats.html">Formats</a>
+      <a class="active" href="./signals.html">Signals</a>
+      <a href="./semantic.html">Semantic</a>
+      <a href="./mcp.html">MCP / Agents</a>
+      <span class="nav-sep"></span>
+      <a href="./changelog.html">Changelog</a>
+      <a href="./roadmap.html">Roadmap</a>
+      <a href="https://github.com/Dream-Pixels-Forge/spectrumalyzer" target="_blank" rel="noopener">GitHub&nbsp;↗</a>
+    </div>
+  </div>
+</nav>
+
+<main class="wrap">
+  <div class="doc-layout">
+    <aside class="doc-side">
+      <h4>On this page</h4>
+      <a href="#table">Signal → animation</a>
+      <a href="#bands">Reading the bands</a>
+      <a href="#recipes">Composing a look</a>
+      <h4>Docs</h4>
+      <a href="./cli.html">CLI reference</a>
+      <a href="./formats.html">Export formats</a>
+      <a href="./semantic.html">Semantic hearing</a>
+      <a href="./changelog.html">Changelog</a>
+      <a href="./roadmap.html">Roadmap</a>
+    </aside>
+
+    <article class="doc-content">
+      <h1>Signals → what to animate</h1>
+      <p class="doc-sub">Every signal is a real FFT-based measurement, not a guess. Here's the field guide to turning each one into motion.</p>
+
+      <h2 id="table">The signal → animation table</h2>
+      <table>
+        <thead><tr><th>Signal</th><th>Field</th><th>Creative recipes</th></tr></thead>
+        <tbody>
+          <tr><td><b>Beat grid</b></td><td><code>beats[]</code></td><td>Cut on beats; scale pops (<code>useBeatPop</code>); scroll/carousel steps; logo bounces</td></tr>
+          <tr><td><b>Onsets (hits)</b></td><td><code>onsets[]</code></td><td>Glitch flashes, particle bursts, impact frames, whip-pans on accents</td></tr>
+          <tr><td><b>Beat strength</b></td><td><code>beats[].strength</code></td><td>Big cuts on strong beats, subtle motion on weak ones</td></tr>
+          <tr><td><b>sub</b> (20–60 Hz)</td><td><code>bands.matrix[:,0]</code></td><td>Camera shake, room rumble, bass drops</td></tr>
+          <tr><td><b>bass</b> (60–250 Hz)</td><td><code>bands.matrix[:,1]</code></td><td>Glow pulses, light intensity, liquid wobble</td></tr>
+          <tr><td><b>lowMid</b> (250–500 Hz)</td><td><code>bands.matrix[:,2]</code></td><td>Warmth — slow color drift, ambient fills</td></tr>
+          <tr><td><b>mid</b> (500 Hz–2 kHz)</td><td><code>bands.matrix[:,3]</code></td><td>Vocals/lead-reactive shapes, text emphasis</td></tr>
+          <tr><td><b>highMid</b> (2–6 kHz)</td><td><code>bands.matrix[:,4]</code></td><td>Snare cracks — sharp 1-frame hits</td></tr>
+          <tr><td><b>treble</b> (6–20 kHz)</td><td><code>bands.matrix[:,5]</code></td><td>Sparkles, glints, particle twinkles, confetti</td></tr>
+          <tr><td><b>Centroid</b></td><td><code>centroid[]</code></td><td>Brightness → blur, cool → warm color grading</td></tr>
+          <tr><td><b>Loudness</b></td><td><code>loudness[]</code></td><td>Zoom pressure, opacity rides, vignette breathing</td></tr>
+          <tr><td><b>Sections</b></td><td><code>sections[]</code></td><td>Scene grouping, narrative pacing, auto-storyboard order</td></tr>
+        </tbody>
+      </table>
+      <div class="callout"><div class="t">Grid vs hits</div>
+      <p><code>beats[]</code> is the <i>expected</i> grid — uniform, phase-locked to the kick, safe for cuts and quantization. <code>onsets[]</code> are the <i>actual</i> transients — ragged and expressive, perfect for impact FX. Use the grid for structure, hits for drama.</p></div>
+      <div class="callout warn"><div class="t">Low <code>bpmConfidence</code> (&lt; 0.5)</div>
+      <p>The pulse is unclear (ambient, live drums, rubato). The grid may drift — prefer <code>onsets[]</code> for such tracks, or constrain the tempo search with <code>--min-bpm</code>/<code>--max-bpm</code>. Pulseless material reports <code>bpm: 0</code> — never an invented tempo.</p></div>
+
+      <h2 id="bands">Reading the bands</h2>
+      <p>Each of the six frequency bands is normalized against <b>its own</b> history, so every band shows its full 0–1 dynamics range — bass tracks don't drown out the treble, and quiet songs still light up the bands when they hit. <code>bands.matrix</code> is one row per <i>analysis</i> frame (~43 fps internally); <code>bandsByFrame</code> (present when you pass <code>--fps</code>) resamples it to exactly one row per <i>video</i> frame, aligned with <code>useCurrentFrame()</code> in Remotion or <code>hf-seek</code> in HyperFrames.</p>
+      <div class="callout tip"><div class="t">The classic two-channel rig</div>
+      <p>Most audio-reactive looks run on two signals: <b>bass → scale/glow</b> (slow, weighty) and <b>treble → sparkle/detail</b> (fast, sharp). Add centroid as a third channel for color and everything breathes with the track.</p></div>
+
+      <h2 id="recipes">Composing a look</h2>
+      <p>Three recipes that cover most music videos and beat visuals:</p>
+      <ul>
+        <li><b>Pulse</b> — <code>beats[]</code> drives cut points; <code>beats[].strength</code> scales the pop; <code>bass</code> band drives a soft radial glow behind the subject.</li>
+        <li><b>Strobe</b> — <code>onsets[]</code> trigger 1–2 frame white/glitch flashes; <code>highMid</code> intensity gates the flashes so weak hits stay quiet.</li>
+        <li><b>Evolve</b> — <code>sections[]</code> change the palette/scene; <code>centroid</code> drifts the grade warm/cool; <code>loudness[]</code> rides the overall scale and opacity.</li>
+      </ul>
+      <p>Deciding <i>where</i> the energy should go? Run <code>spectrumalyzer report</code> first — the heatmap shows the song's anatomy before you animate anything.</p>
+
+      <div class="pager">
+        <a href="./formats.html"><span class="lbl">Previous</span>← Export formats</a>
+        <a class="next" href="./semantic.html"><span class="lbl">Next</span>Semantic hearing →</a>
+      </div>
+    </article>
+  </div>
+</main>
+
+<footer class="footer">
+  <div class="wrap">
+    <span>MIT License</span>
+    <a href="https://github.com/Dream-Pixels-Forge/spectrumalyzer" target="_blank" rel="noopener">GitHub</a>
+    <a href="https://pypi.org/project/spectrumalyzer/" target="_blank" rel="noopener">PyPI</a>
+    <span class="spacer"></span>
+    <span>dream-pixels-forge · open source</span>
+  </div>
+</footer>
+
+</body>
+</html>

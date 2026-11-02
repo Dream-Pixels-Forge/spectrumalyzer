@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>spectrumalyzer — turn sound into motion</title>
+  <meta name="description" content="spectrumalyzer turns any song into animation-ready data: beats, BPM, onsets, frequency bands, song sections and loudness, exported in the exact format your creative tool speaks — Remotion, HyperFrames, After Effects, Final Cut / Resolve, or JSON. Local-first.">
+  <meta property="og:title" content="spectrumalyzer — turn sound into motion">
+  <meta property="og:description" content="Precise musical intelligence. Animation-ready frames. Every creative tool.">
+  <meta property="og:type" content="website">
+  <meta property="og:image" content="/assets/banner.png">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230a0b0d'/%3E%3Cpath d='M8 20c0-4 2-8 4-8s4 4 4 8-2 8-4 8-4-4-4-8zm8-6c0-2.5 1.5-5 3-5s3 2.5 3 5' stroke='%23ff7a1a' stroke-width='2.2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="./site.css">
+</head>
+<body>
+
+<nav class="nav">
+  <div class="nav-inner">
+    <a class="brand" href="./"><span class="logo-dot"></span>spectrum<b>alyzer</b></a>
+    <div class="nav-links">
+      <a class="active" href="./">Home</a>
+      <span class="nav-sep"></span>
+      <a href="./cli.html">CLI</a>
+      <a href="./api.html">Python API</a>
+      <a href="./formats.html">Formats</a>
+      <a href="./signals.html">Signals</a>
+      <a href="./semantic.html">Semantic</a>
+      <a href="./mcp.html">MCP / Agents</a>
+      <span class="nav-sep"></span>
+      <a href="./changelog.html">Changelog</a>
+      <a href="./roadmap.html">Roadmap</a>
+      <a href="https://github.com/Dream-Pixels-Forge/spectrumalyzer" target="_blank" rel="noopener">GitHub&nbsp;↗</a>
+    </div>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="wrap">
+    <div class="hero-banner">
+      <img src="./assets/banner.png" alt="spectrumalyzer — turn sound into motion. BPM, confidence and loudness readouts over a six-band spectrum, beat grid and section strip." loading="eager">
+    </div>
+    <div class="hero-tag">
+      <h1>Turn sound into <em>motion</em>.</h1>
+      <p>Precise musical intelligence. Animation-ready frames. Every creative tool — Remotion, HyperFrames, After Effects, Final Cut, Resolve, spreadsheets, or plain JSON. No subscriptions, no uploads, no cloud: Python + ffmpeg, fully local.</p>
+      <div class="cta-row">
+        <a class="btn primary" href="./cli.html">Read the docs →</a>
+        <a class="btn" href="https://pypi.org/project/spectrumalyzer/" target="_blank" rel="noopener">pip install spectrumalyzer</a>
+      </div>
+      <div class="bands-row">
+        <span class="badge"><span>Beat &amp; BPM detection</span></span>
+        <span class="badge"><span>Six frequency bands</span></span>
+        <span class="badge"><span>Frame-native exports</span></span>
+        <span class="badge"><span>Semantic music search</span></span>
+        <span class="badge"><span>Local-first MCP integration</span></span>
+        <span class="badge"><span>Best-window trimmer</span></span>
+      </div>
+    </div>
+  </div>
+</header>
+
+<section class="block">
+  <div class="wrap">
+    <h2 class="sec">Quick start</h2>
+    <p class="sec-sub">One install gets everything — DSP engine plus semantic hearing.</p>
+
+    <div class="install-strip">
+      <pre><code>brew install ffmpeg   # or: apt install / winget install ffmpeg
+pip install spectrumalyzer</code></pre>
+      <span class="hint">macOS · Debian/Ubuntu · Windows. Embedding weights (~90 MB) auto-download on first use.</span>
+    </div>
+
+    <div class="quickstart">
+      <div class="qs-step">
+        <div class="qs-num">1</div>
+        <div>
+          <p>Analyze a track for a 30 fps project, in three formats at once:</p>
+          <pre><code>spectrumalyzer analyze song.mp3 --fps 30 --format remotion,csv,ae</code></pre>
+        </div>
+      </div>
+      <div class="qs-step">
+        <div class="qs-num">2</div>
+        <div>
+          <p>Open a self-contained visual report in your browser:</p>
+          <pre><code>spectrumalyzer report song.mp3 -o song.html</code></pre>
+        </div>
+      </div>
+      <div class="qs-step">
+        <div class="qs-num">3</div>
+        <div>
+          <p>Need a 90 s bed for video instead of the full song?</p>
+          <pre><code>spectrumalyzer trim song.mp3 --length 90 -o bed.mp3</code></pre>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="block">
+  <div class="wrap">
+    <h2 class="sec">Why editors use it</h2>
+    <p class="sec-sub">Editors don't think in seconds — they think in frames. spectrumalyzer goes the last mile.</p>
+    <div class="grid-3">
+      <div class="card">
+        <div class="ico o">▦</div>
+        <h3>Frame-native output</h3>
+        <p>Beats pre-converted to your project's frame rate (24/25/30/60 fps) — zero runtime math in your compositions.</p>
+      </div>
+      <div class="card">
+        <div class="ico c">⌘</div>
+        <h3>Speaks your tool's dialect</h3>
+        <p>A React hook for Remotion, a marker script for After Effects, FCPXML for Final Cut &amp; Resolve, a timeline for HyperFrames.</p>
+      </div>
+      <div class="card">
+        <div class="ico v">◉</div>
+        <h3>Musically grounded</h3>
+        <p>The beat grid is phase-locked to the kick drum, not generic loudness spikes — cuts land on the beat even when hi-hats are louder.</p>
+      </div>
+      <div class="card">
+        <div class="ico o">Ω</div>
+        <h3>Honest data</h3>
+        <p>Every signal is a real FFT-based measurement, with confidence scores and documented limitations. Pulseless tracks report <code>bpm: 0</code>, never an invented tempo.</p>
+      </div>
+      <div class="card">
+        <div class="ico c">Ω</div>
+        <h3>Semantic hearing</h3>
+        <p>A local embedding model describes tracks in words and searches your library by meaning: "calm warm bed for a documentary intro".</p>
+      </div>
+      <div class="card">
+        <div class="ico v">⚡</div>
+        <h3>Agents can use it too</h3>
+        <p>Native MCP server turns every capability into a tool for AI agents, plus an installable agent skill. Everything stays local.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="block">
+  <div class="wrap">
+    <h2 class="sec">How it works</h2>
+    <p class="sec-sub">One pipeline: decode → analyze → frame-ize → export. Each stage is an independent, testable component.</p>
+    <div class="pipeline">
+      <div class="stage">
+        <h3>Decode</h3>
+        <p>ffmpeg turns any audio — or a video's audio track — into clean mono PCM. If ffmpeg plays it, spectrumalyzer reads it.</p>
+      </div>
+      <div class="stage">
+        <h3>Analyze</h3>
+        <p>STFT + spectral flux find onsets; autocorrelation finds the tempo; the beat grid phase-locks to the kick; 6 frequency bands and song sections fill in the picture.</p>
+      </div>
+      <div class="stage">
+        <h3>Frame-ize</h3>
+        <p>Every timestamp and band row is converted to your project's fps at <code>--fps</code> — copy-paste numbers straight into keyframes.</p>
+      </div>
+      <div class="stage">
+        <h3>Export</h3>
+        <p>Pure, tested renderers emit each tool's dialect from the same analysis — no drift between formats.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="block">
+  <div class="wrap">
+    <h2 class="sec">Every creative tool, one analysis</h2>
+    <p class="sec-sub">Six exporters plus a self-contained HTML report, from a single run.</p>
+    <div class="chips">
+      <span class="chip"><b>remotion</b> + useBeats.ts hook</span>
+      <span class="chip"><b>hyperframes</b> data-hf timeline</span>
+      <span class="chip"><b>after effects</b> comp markers</span>
+      <span class="chip"><b>final cut / resolve</b> FCPXML</span>
+      <span class="chip"><b>premiere / resolve</b> marker CSV</span>
+      <span class="chip"><b>json</b> — everything</span>
+    </div>
+    <div style="margin-top:26px; display:flex; gap:12px; flex-wrap:wrap">
+      <a class="btn" href="./formats.html">Format details →</a>
+      <a class="btn" href="./signals.html">What to animate with each signal →</a>
+    </div>
+  </div>
+</section>
+
+<footer class="footer">
+  <div class="wrap">
+    <span>MIT License</span>
+    <a href="https://github.com/Dream-Pixels-Forge/spectrumalyzer" target="_blank" rel="noopener">GitHub</a>
+    <a href="https://pypi.org/project/spectrumalyzer/" target="_blank" rel="noopener">PyPI</a>
+    <span class="spacer"></span>
+    <span>dream-pixels-forge · open source</span>
+  </div>
+</footer>
+
+</body>
+</html>

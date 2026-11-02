@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Semantic hearing — spectrumalyzer</title>
+  <meta name="description" content="spectrumalyzer's semantic layer: describe tracks in natural language, semantic-search a music library by meaning, and the local embedding model lifecycle — fully local, nothing leaves your machine.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230a0b0d'/%3E%3Cpath d='M8 20c0-4 2-8 4-8s4 4 4 8-2 8-4 8-4-4-4-8zm8-6c0-2.5 1.5-5 3-5s3 2.5 3 5' stroke='%23ff7a1a' stroke-width='2.2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="./site.css">
+</head>
+<body>
+
+<nav class="nav">
+  <div class="nav-inner">
+    <a class="brand" href="./"><span class="logo-dot"></span>spectrum<b>alyzer</b></a>
+    <div class="nav-links">
+      <a href="./">Home</a>
+      <span class="nav-sep"></span>
+      <a href="./cli.html">CLI</a>
+      <a href="./api.html">Python API</a>
+      <a href="./formats.html">Formats</a>
+      <a href="./signals.html">Signals</a>
+      <a class="active" href="./semantic.html">Semantic</a>
+      <a href="./mcp.html">MCP / Agents</a>
+      <span class="nav-sep"></span>
+      <a href="./changelog.html">Changelog</a>
+      <a href="./roadmap.html">Roadmap</a>
+      <a href="https://github.com/Dream-Pixels-Forge/spectrumalyzer" target="_blank" rel="noopener">GitHub&nbsp;↗</a>
+    </div>
+  </div>
+</nav>
+
+<main class="wrap">
+  <div class="doc-layout">
+    <aside class="doc-side">
+      <h4>On this page</h4>
+      <a href="#commands">describe · find · --embed</a>
+      <a href="#model">The model</a>
+      <a href="#lifecycle">Model lifecycle</a>
+      <a href="#honesty">How it stays honest</a>
+      <h4>Docs</h4>
+      <a href="./cli.html">CLI reference</a>
+      <a href="./signals.html">Signal → animation</a>
+      <a href="./mcp.html">MCP / Agents</a>
+      <a href="./changelog.html">Changelog</a>
+      <a href="./roadmap.html">Roadmap</a>
+    </aside>
+
+    <article class="doc-content">
+      <h1>Semantic hearing</h1>
+      <p class="doc-sub">Numbers get measured; this layer gives them <i>language</i>. Describe a track in words, tag it by mood, and search your library by meaning — all local.</p>
+
+      <h2 id="commands"><code>describe</code> · <code>find</code> · <code>--embed</code></h2>
+      <pre><code># describe a track in words + mood/energy/flavor/use tags
+spectrumalyzer describe song.mp3 [--top 3]
+
+# semantic search across a library (recursive, cached index)
+spectrumalyzer find "calm warm bed for a documentary intro" ./my-library [--limit 10] [--refresh]
+
+# attach description + tags to any analysis JSON
+spectrumalyzer analyze song.mp3 --embed -o enriched.json</code></pre>
+      <p><code>describe</code> summarizes the track from its measurements (tempo class, loudness, brightness, dominant band, transient density, section contrast), then the embedding model turns that summary into plain language plus a short tag list. <code>find</code> embeds your query and the library, ranks by meaning, and caches the index so repeat searches are instant — <code>--refresh</code> forces re-embedding.</p>
+
+      <h2 id="model">The model</h2>
+      <table>
+        <thead><tr><th>Role</th><th>Model</th></tr></thead>
+        <tbody>
+          <tr><td><b>Preferred</b></td><td><code>google/embeddinggemma-300m</code> — Google's current small Gemma embedding model</td></tr>
+          <tr><td><b>Fallback</b></td><td><code>sentence-transformers/all-MiniLM-L6-v2</code> — non-gated, works everywhere</td></tr>
+        </tbody>
+      </table>
+      <p>The weights (~90 MB, one-time) land in <code>~/.config/spectrumalyzer/embedding/</code> (<code>XDG_CONFIG_HOME</code> is respected). The preferred model is tried first; if it's unavailable, the fallback is used automatically, so the feature works even where Gated access is missing.</p>
+
+      <h2 id="lifecycle">Model lifecycle</h2>
+      <pre><code>spectrumalyzer model pull     # download weights into the local model home
+spectrumalyzer model status   # preferred/fallback model + installed state</code></pre>
+      <p><code>describe</code>, <code>find</code> and <code>analyze --embed</code> all auto-pull on first use if the weights are missing. Once installed, every run is fully offline.</p>
+      <div class="callout tip"><div class="t">Local-first</div>
+      <p>No audio or text ever leaves your machine. The core DSP analysis never depends on the embedding layer — you can use beats/bands/sections without the model present.</p></div>
+
+      <h2 id="honesty">How it stays honest</h2>
+      <p>Tags aren't magic. Each track is first summarized in words derived from <b>real measurements</b>, then tagged by blending embedding similarity with a <b>numeric feature-profile match</b> per descriptor — the embedding pulls toward the meaning, the numbers keep it grounded. Pulseless ambient material is reported as <i>"no clear pulse"</i> (and <code>bpm: 0</code>), never an invented tempo. Known limitation: the tag bank is coarse and search discrimination between sonically similar tracks is modest — see the <a href="./roadmap.html">roadmap</a> calibration backlog.</p>
+
+      <div class="pager">
+        <a href="./signals.html"><span class="lbl">Previous</span>← Signals</a>
+        <a class="next" href="./mcp.html"><span class="lbl">Next</span>MCP / Agents →</a>
+      </div>
+    </article>
+  </div>
+</main>
+
+<footer class="footer">
+  <div class="wrap">
+    <span>MIT License</span>
+    <a href="https://github.com/Dream-Pixels-Forge/spectrumalyzer" target="_blank" rel="noopener">GitHub</a>
+    <a href="https://pypi.org/project/spectrumalyzer/" target="_blank" rel="noopener">PyPI</a>
+    <span class="spacer"></span>
+    <span>dream-pixels-forge · open source</span>
+  </div>
+</footer>
+
+</body>
+</html>

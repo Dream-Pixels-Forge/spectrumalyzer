@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CLI reference — spectrumalyzer</title>
+  <meta name="description" content="Full command reference for the spectrumalyzer CLI: analyze, report, formats, trim, describe, find, model and mcp.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230a0b0d'/%3E%3Cpath d='M8 20c0-4 2-8 4-8s4 4 4 8-2 8-4 8-4-4-4-8zm8-6c0-2.5 1.5-5 3-5s3 2.5 3 5' stroke='%23ff7a1a' stroke-width='2.2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="./site.css">
+</head>
+<body>
+
+<nav class="nav">
+  <div class="nav-inner">
+    <a class="brand" href="./"><span class="logo-dot"></span>spectrum<b>alyzer</b></a>
+    <div class="nav-links">
+      <a href="./">Home</a>
+      <span class="nav-sep"></span>
+      <a class="active" href="./cli.html">CLI</a>
+      <a href="./api.html">Python API</a>
+      <a href="./formats.html">Formats</a>
+      <a href="./signals.html">Signals</a>
+      <a href="./semantic.html">Semantic</a>
+      <a href="./mcp.html">MCP / Agents</a>
+      <span class="nav-sep"></span>
+      <a href="./changelog.html">Changelog</a>
+      <a href="./roadmap.html">Roadmap</a>
+      <a href="https://github.com/Dream-Pixels-Forge/spectrumalyzer" target="_blank" rel="noopener">GitHub&nbsp;↗</a>
+    </div>
+  </div>
+</nav>
+
+<main class="wrap">
+  <div class="doc-layout">
+    <aside class="doc-side">
+      <h4>On this page</h4>
+      <a href="#overview">Overview</a>
+      <a href="#analyze">analyze</a>
+      <a href="#report">report</a>
+      <a href="#formats">formats</a>
+      <a href="#trim">trim</a>
+      <a href="#semantic-cmds">describe · find · model</a>
+      <a href="#mcp">mcp</a>
+      <a href="#faq">Troubleshooting &amp; FAQ</a>
+      <h4>Docs</h4>
+      <a href="./api.html">Python API</a>
+      <a href="./formats.html">Export formats</a>
+      <a href="./signals.html">Signal → animation</a>
+      <a href="./changelog.html">Changelog</a>
+      <a href="./roadmap.html">Roadmap</a>
+    </aside>
+
+    <article class="doc-content">
+      <h1>CLI reference</h1>
+      <p class="doc-sub">Every command, flag and default — as shipped in v0.6.0. Install: <code>pip install spectrumalyzer</code> plus <code>ffmpeg</code> on your system.</p>
+
+      <h2 id="overview">Overview</h2>
+      <pre><code>spectrumalyzer &lt;command&gt; [options]
+
+analyze   Analyze an audio file and export beat/band data
+report    Generate a self-contained HTML visual report
+formats   List available export formats
+trim      Cut the best short version of a long track (or video)
+describe  Describe a track in natural language + mood tags
+find      Semantic search over a folder of audio files
+model     Manage the local embedding model (pull | status)
+mcp       Run the MCP server (stdio) — spectrumalyzer as tools for AI agents
+
+global:
+  --version   print version</code></pre>
+      <p>All commands read anything ffmpeg decodes: mp3, wav, flac, ogg, m4a, and even video files (the audio track is extracted automatically). Progress goes to stderr, data to stdout, so <code>--stdout</code> output is pipe-friendly.</p>
+
+      <h2 id="analyze"><code>analyze</code> — the workhorse</h2>
+      <pre><code>spectrumalyzer analyze AUDIO [-o BASE] [-f LIST] [--fps N]
+                        [--min-bpm X] [--max-bpm Y] [--no-bands] [--no-sections]
+                        [--stdout] [--embed] [-q]</code></pre>
+      <table>
+        <thead><tr><th>Option</th><th>Default</th><th>What it does</th></tr></thead>
+        <tbody>
+          <tr><td><code>--fps N</code></td><td>none</td><td>Adds true frame numbers to all exports. <b>Required</b> for <code>remotion</code>, <code>hyperframes</code>, <code>ae</code>, <code>csv</code>, <code>fcpxml</code>. Use 24/25/30/60 to match your project.</td></tr>
+          <tr><td><code>-f, --format LIST</code></td><td><code>json</code></td><td>Comma-separated: <code>json,remotion,hyperframes,ae,csv,fcpxml</code>. Each file gets its own suffix under the base path.</td></tr>
+          <tr><td><code>-o, --output BASE</code></td><td>audio file name</td><td>Output base path; every format appends its own suffix.</td></tr>
+          <tr><td><code>--min-bpm / --max-bpm</code></td><td>60 / 200</td><td>Tempo search window — constrain for unusually slow or fast music.</td></tr>
+          <tr><td><code>--no-bands</code></td><td>off</td><td>Skip frequency-band analysis (faster).</td></tr>
+          <tr><td><code>--no-sections</code></td><td>off</td><td>Skip song-structure segmentation (faster).</td></tr>
+          <tr><td><code>--stdout</code></td><td>off</td><td>Also write the first format to stdout (pipe-friendly).</td></tr>
+          <tr><td><code>--embed</code></td><td>off</td><td>Add a natural-language <code>description</code> + <code>tags</code> block to the JSON (uses the local embedding model; auto-pulls weights on first run).</td></tr>
+          <tr><td><code>-q, --quiet</code></td><td>off</td><td>Suppress progress output — for scripts and CI.</td></tr>
+        </tbody>
+      </table>
+      <div class="callout tip"><div class="t">Example — everything, for a 24 fps film project</div>
+      <pre><code>spectrumalyzer analyze soundtrack.flac --fps 24 \
+  --format json,remotion,hyperframes,ae,csv,fcpxml \
+  --min-bpm 70 --max-bpm 180 -o deliverables/soundtrack</code></pre></div>
+
+      <h2 id="report"><code>report</code> — see the music</h2>
+      <pre><code>spectrumalyzer report AUDIO [-o report.html] [--fps N] [--no-bands] [--no-sections] [-q]</code></pre>
+      <p>Generates <b>one self-contained HTML file</b> (no server, no external assets): the waveform with the beat grid drawn over it, a band-by-time heatmap, the section strip, and all key stats. Perfect for client reviews, or for deciding where the edit's energy should go before you animate anything. Default output: <code>&lt;audio&gt;.report.html</code>.</p>
+
+      <h2 id="formats"><code>formats</code> — the cheat sheet</h2>
+      <pre><code>spectrumalyzer formats</code></pre>
+      <p>Lists every export format, its file suffix, and what it's for. Full rundown on the <a href="./formats.html">Export formats</a> page.</p>
+
+      <h2 id="trim"><code>trim</code> — a short version for video</h2>
+      <pre><code>spectrumalyzer trim AUDIO_OR_VIDEO [--length 90] [-o out.mp3] [--crossfade 0.5] [--preview] [-q]</code></pre>
+      <p>Video tools and AI video models take short clips, not full songs. <code>trim</code> picks the <b>most worthwhile window</b> of your target length — loudness + onset density + section energy, with cuts snapped to the beat grid — and cuts the source with ffmpeg (short crossfades, no clicks).</p>
+      <table>
+        <thead><tr><th>Option</th><th>Default</th><th>What it does</th></tr></thead>
+        <tbody>
+          <tr><td><code>--length N</code></td><td>90</td><td>Target length of the short version, in seconds.</td></tr>
+          <tr><td><code>-o, --output PATH</code></td><td><code>&lt;name&gt;-short.mp3</code> next to the source</td><td>Output path — container/codec follows the extension.</td></tr>
+          <tr><td><code>--crossfade SEC</code></td><td>0.5</td><td>Fade in/out at the cut points (0 disables).</td></tr>
+          <tr><td><code>--preview</code></td><td>off</td><td>Only print the chosen window; cut nothing.</td></tr>
+        </tbody>
+      </table>
+      <div class="callout"><div class="t">Example — a 90 s bed from the full song</div>
+      <pre><code>spectrumalyzer trim song.mp3 --length 90 -o bed.mp3
+# Window: 37.50s → 127.50s (90.0s of 203.4s)
+#   · best 90s window of 203s by loudness + onset density + section energy
+#   · window covers the strongest overlapping section ('peak' section)
+#   · cut points snapped to the beat grid
+# Short version written: bed.mp3</code></pre>
+      <p>If the source is a <b>video</b> file, the video is cut to the same window too: <code>spectrumalyzer trim movie.mp4 --length 60 -o clip.mp4</code>. When the track is already short enough, <code>trim</code> says so and writes nothing.</p></div>
+
+      <h2 id="semantic-cmds"><code>describe</code> · <code>find</code> · <code>model</code> — semantic hearing</h2>
+      <p>These three power the <a href="./semantic.html">semantic layer</a>: a small local embedding model that gives the measurements language.</p>
+      <pre><code># describe a track in words + mood/energy/flavor/use tags
+spectrumalyzer describe song.mp3 [--fps N] [--top 3]
+
+# semantic search across a library (recursive, cached index)
+spectrumalyzer find "calm warm bed for a documentary intro" ./my-library [--limit 10] [--refresh]
+
+# embedding model lifecycle
+spectrumalyzer model pull     # download weights into ~/.config/spectrumalyzer/embedding/
+spectrumalyzer model status   # preferred / fallback model + installed state</code></pre>
+      <p>First use auto-downloads the weights (~90 MB, one-time). Everything runs locally — no audio or text ever leaves your machine.</p>
+
+      <h2 id="mcp"><code>mcp</code> — tools for AI agents</h2>
+      <pre><code>spectrumalyzer mcp    # blocking stdio MCP server</code></pre>
+      <p>Exposes analyze, describe, find, export, report, trim and model-status as native MCP tools. Registration snippets and the full tool table live on the <a href="./mcp.html">MCP &amp; agents</a> page.</p>
+
+      <h2 id="faq">Troubleshooting &amp; FAQ</h2>
+      <div class="callout warn"><div class="t">"ffmpeg not found"</div>
+      <p>Install ffmpeg (brew / apt / winget) and make sure <code>ffmpeg -version</code> works in your terminal.</p></div>
+      <div class="callout warn"><div class="t">BPM is double or half what I expect</div>
+      <p>Heavily syncopated music can report the 8th-note pulse or the half-time feel. Constrain the search: <code>--min-bpm 100 --max-bpm 140</code> for a house track you know is ~120.</p></div>
+      <div class="callout warn"><div class="t">bpmConfidence is low (&lt; 0.5)</div>
+      <p>The pulse is unclear — ambient, live drums, or rubato material. The beat grid may drift; prefer <code>onsets[]</code> (raw hits) for such tracks, or widen the BPM window.</p></div>
+      <div class="callout warn"><div class="t">Beats feel slightly off on hi-hat-heavy music</div>
+      <p>That was the v0.1 problem — since v0.2 the grid anchors to the kick. Tracks with <i>no</i> low-frequency pulse (acoustic, choir) fall back to onset alignment (±12 ms).</p></div>
+      <div class="callout warn"><div class="t">Remotion export refuses to run</div>
+      <p>It needs <code>--fps</code> — frame numbers can't be computed without a frame rate.</p></div>
+      <div class="callout tip"><div class="t">Can it read video files?</div>
+      <p>Yes — any file ffmpeg reads, including MP4/MOV; the audio track is extracted automatically.</p></div>
+      <div class="callout tip"><div class="t">Where is the old <code>spectrum</code> key?</div>
+      <p>v0.1's "spectrum" was not a real FFT. Since v0.2 it's the real <code>bands</code> matrix; <code>bpm</code>, <code>beats</code>, <code>beatTimes</code> are unchanged. See the <a href="./changelog.html">changelog</a>.</p></div>
+
+      <div class="pager">
+        <a href="./index.html"><span class="lbl">← Back to</span>Home</a>
+        <a class="next" href="./api.html"><span class="lbl">Next</span>Python API →</a>
+      </div>
+    </article>
+  </div>
+</main>
+
+<footer class="footer">
+  <div class="wrap">
+    <span>MIT License</span>
+    <a href="https://github.com/Dream-Pixels-Forge/spectrumalyzer" target="_blank" rel="noopener">GitHub</a>
+    <a href="https://pypi.org/project/spectrumalyzer/" target="_blank" rel="noopener">PyPI</a>
+    <span class="spacer"></span>
+    <span>dream-pixels-forge · open source</span>
+  </div>
+</footer>
+
+</body>
+</html>

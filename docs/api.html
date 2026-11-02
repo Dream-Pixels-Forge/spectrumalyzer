@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Python API — spectrumalyzer</title>
+  <meta name="description" content="spectrumalyzer Python API: analyze(), trim(), and the AnalysisResult data model for scripting audio-reactive workflows.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230a0b0d'/%3E%3Cpath d='M8 20c0-4 2-8 4-8s4 4 4 8-2 8-4 8-4-4-4-8zm8-6c0-2.5 1.5-5 3-5s3 2.5 3 5' stroke='%23ff7a1a' stroke-width='2.2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="./site.css">
+</head>
+<body>
+
+<nav class="nav">
+  <div class="nav-inner">
+    <a class="brand" href="./"><span class="logo-dot"></span>spectrum<b>alyzer</b></a>
+    <div class="nav-links">
+      <a href="./">Home</a>
+      <span class="nav-sep"></span>
+      <a href="./cli.html">CLI</a>
+      <a class="active" href="./api.html">Python API</a>
+      <a href="./formats.html">Formats</a>
+      <a href="./signals.html">Signals</a>
+      <a href="./semantic.html">Semantic</a>
+      <a href="./mcp.html">MCP / Agents</a>
+      <span class="nav-sep"></span>
+      <a href="./changelog.html">Changelog</a>
+      <a href="./roadmap.html">Roadmap</a>
+      <a href="https://github.com/Dream-Pixels-Forge/spectrumalyzer" target="_blank" rel="noopener">GitHub&nbsp;↗</a>
+    </div>
+  </div>
+</nav>
+
+<main class="wrap">
+  <div class="doc-layout">
+    <aside class="doc-side">
+      <h4>On this page</h4>
+      <a href="#analyze-fn">analyze()</a>
+      <a href="#trim-fn">trim()</a>
+      <a href="#datamodel">The data model</a>
+      <a href="#examples">Examples</a>
+      <h4>Docs</h4>
+      <a href="./cli.html">CLI reference</a>
+      <a href="./formats.html">Export formats</a>
+      <a href="./signals.html">Signal → animation</a>
+      <a href="./changelog.html">Changelog</a>
+      <a href="./roadmap.html">Roadmap</a>
+    </aside>
+
+    <article class="doc-content">
+      <h1>Python API</h1>
+      <p class="doc-sub">One import does everything. The public surface is deliberately small: two functions and typed dataclasses.</p>
+
+      <pre><code>from spectrumalyzer import analyze, trim
+from spectrumalyzer import AnalysisResult, Beat, Section, TrimSelection, __version__</code></pre>
+
+      <h2 id="analyze-fn"><code>analyze()</code> — the whole engine in one call</h2>
+      <pre><code>def analyze(
+    path: str,
+    fps: float | None = None,
+    bands: bool = True,
+    sections: bool = True,
+    min_bpm: float = 60.0,
+    max_bpm: float = 200.0,
+    sample_rate: int = 44100,
+    waveform_buckets: int = 400,
+) -> AnalysisResult</code></pre>
+      <table>
+        <thead><tr><th>Argument</th><th>Default</th><th>What it does</th></tr></thead>
+        <tbody>
+          <tr><td><code>path</code></td><td>—</td><td>Any file ffmpeg reads: mp3, wav, flac, ogg, m4a, or video (audio track extracted automatically).</td></tr>
+          <tr><td><code>fps</code></td><td><code>None</code></td><td>When set, every timestamp gains frame numbers at this rate — creative tools work in frames, not seconds.</td></tr>
+          <tr><td><code>bands</code></td><td><code>True</code></td><td>Include per-frame frequency-band energies (6 bands).</td></tr>
+          <tr><td><code>sections</code></td><td><code>True</code></td><td>Attempt song-structure segmentation (quiet / mid / high / peak).</td></tr>
+          <tr><td><code>min_bpm</code> / <code>max_bpm</code></td><td>60 / 200</td><td>Tempo search window hints.</td></tr>
+          <tr><td><code>sample_rate</code></td><td>44100</td><td>Internal decode rate.</td></tr>
+          <tr><td><code>waveform_buckets</code></td><td>400</td><td>Resolution of the visualization waveform.</td></tr>
+        </tbody>
+      </table>
+      <p>Raises <code>ValueError</code> when the file contains no decodable audio. Every CLI flag has a keyword-argument twin (<code>--no-bands</code> → <code>bands=False</code>).</p>
+
+      <h2 id="trim-fn"><code>trim()</code> — best short version of a long track</h2>
+      <pre><code>def trim(
+    path: str,
+    target_seconds: float = 90.0,
+    output: str | None = None,
+    crossfade: float = 0.5,
+) -> tuple[TrimSelection, str | None]</code></pre>
+      <p>Analyzes <code>path</code>, picks the best window (loudness + onset density + section energy, cuts snapped to the beat grid), and cuts it with ffmpeg. Returns <code>(selection, written_path)</code> — <code>written_path</code> is <code>None</code> when the track was already short enough (nothing cut).</p>
+      <p>Lower-level pieces, useful when you want the decision without the cut:</p>
+      <pre><code>from spectrumalyzer import analyze, select_trim_window, trim_audio
+
+result = analyze("song.mp3")
+sel = select_trim_window(result, 90, snap_to_beats=True)  # -> TrimSelection
+if sel.trimmed:
+    trim_audio("song.mp3", "bed.mp3", sel.start, sel.end, crossfade=0.5)</code></pre>
+      <div class="callout tip"><div class="t">No-op guarantee</div>
+      <p>If the track is already ≤ the target length, <code>TrimSelection.trimmed</code> is <code>False</code> and the whole track is returned with a reason — no file is written, no fake "trim" reported.</p></div>
+
+      <h2 id="datamodel">The data model</h2>
+      <p><code>AnalysisResult</code> is the typed contract everything builds on:</p>
+      <pre><code>result = analyze("song.mp3", fps=30)
+
+result.bpm                    # 128.32
+result.bpm_confidence         # 0.91 — 0..1, how strong the tempo pulse is
+result.duration               # seconds
+result.beats_as_frames()     # [15, 53, 91, ...]  at 30 fps
+result.band_rows_at_fps()    # one [sub, bass, lowMid, mid, highMid, treble] row per video frame
+result.sections               # [Section(start, end, energy, label), ...]
+result.centroid               # spectral brightness per frame
+result.loudness               # relative loudness envelope
+result.loudness_db           # absolute RMS loudness in dBFS
+result.to_dict()              # JSON-ready dict (what the JSON export writes)
+result.to_legacy_dict()      # old bpm/beats/beatTimes contract for v0.1 consumers</code></pre>
+      <table>
+        <thead><tr><th>Type</th><th>Fields / methods</th></tr></thead>
+        <tbody>
+          <tr><td><code>Beat</code></td><td><code>time</code>, <code>frame</code> (when <code>fps</code> set), <code>strength</code>; <code>to_dict(fps)</code></td></tr>
+          <tr><td><code>Section</code></td><td><code>start</code>, <code>end</code>, <code>energy</code>, <code>label</code> (quiet/mid/high/peak); <code>duration</code> property</td></tr>
+          <tr><td><code>BandData</code></td><td><code>names</code>, <code>frame_duration</code>, <code>matrix</code>; <code>row_at(t)</code>, <code>resample_to_fps(fps, duration)</code></td></tr>
+          <tr><td><code>TrimSelection</code></td><td><code>start</code>, <code>end</code>, <code>reasons</code>; <code>duration</code>, <code>trimmed</code> properties, <code>to_dict()</code></td></tr>
+        </tbody>
+      </table>
+      <p>The frame math is unit-tested: <code>time_to_frame(t, fps)</code> and band resampling align 1:1 with video frames (<code>useCurrentFrame()</code> in Remotion, <code>hf-seek</code> in HyperFrames).</p>
+
+      <h2 id="examples">Examples</h2>
+      <h3>30 fps beat data for a Remotion composition</h3>
+      <pre><code>from spectrumalyzer import analyze
+
+r = analyze("song.mp3", fps=30)
+beats  = r.beats_as_frames()   # keyframe-ready frame numbers
+bands  = r.band_rows_at_fps()  # index 1:1 with useCurrentFrame()
+print(r.bpm, r.bpm_confidence, len(r.sections))</code></pre>
+      <h3>Programmatic export without the CLI</h3>
+      <pre><code>import json
+from spectrumalyzer import analyze
+from spectrumalyzer.exporters import export, export_filename
+
+r = analyze("song.mp3", fps=24)
+for fmt in ("json", "remotion", "ae"):
+    path = export_filename(r, fmt, base="deliverables/song")
+    with open(path, "w", encoding="utf-8") as fh:
+        fh.write(export(r, fmt))</code></pre>
+      <h3>Attach semantics to an analysis (embeddings)</h3>
+      <pre><code>from spectrumalyzer import analyze
+from spectrumalyzer.embedding.describe import describe
+from spectrumalyzer.embedding.mood import tag_track
+
+r = analyze("song.mp3")
+d = describe(r)              # {"summary": ..., "description": ...}
+tags = tag_track(backend, d["text"])  # mood / energy / flavor / use axes</code></pre>
+      <p>The same logic the <code>--embed</code> flag uses — see <a href="./semantic.html">Semantic hearing</a>.</p>
+
+      <div class="pager">
+        <a href="./cli.html"><span class="lbl">Previous</span>← CLI reference</a>
+        <a class="next" href="./formats.html"><span class="lbl">Next</span>Export formats →</a>
+      </div>
+    </article>
+  </div>
+</main>
+
+<footer class="footer">
+  <div class="wrap">
+    <span>MIT License</span>
+    <a href="https://github.com/Dream-Pixels-Forge/spectrumalyzer" target="_blank" rel="noopener">GitHub</a>
+    <a href="https://pypi.org/project/spectrumalyzer/" target="_blank" rel="noopener">PyPI</a>
+    <span class="spacer"></span>
+    <span>dream-pixels-forge · open source</span>
+  </div>
+</footer>
+
+</body>
+</html>

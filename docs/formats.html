@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Export formats — spectrumalyzer</title>
+  <meta name="description" content="The six spectrumalyzer export formats — json, remotion, hyperframes, ae, csv, fcpxml — what each produces and how to use it in your creative tool.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230a0b0d'/%3E%3Cpath d='M8 20c0-4 2-8 4-8s4 4 4 8-2 8-4 8-4-4-4-8zm8-6c0-2.5 1.5-5 3-5s3 2.5 3 5' stroke='%23ff7a1a' stroke-width='2.2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="./site.css">
+</head>
+<body>
+
+<nav class="nav">
+  <div class="nav-inner">
+    <a class="brand" href="./"><span class="logo-dot"></span>spectrum<b>alyzer</b></a>
+    <div class="nav-links">
+      <a href="./">Home</a>
+      <span class="nav-sep"></span>
+      <a href="./cli.html">CLI</a>
+      <a href="./api.html">Python API</a>
+      <a class="active" href="./formats.html">Formats</a>
+      <a href="./signals.html">Signals</a>
+      <a href="./semantic.html">Semantic</a>
+      <a href="./mcp.html">MCP / Agents</a>
+      <span class="nav-sep"></span>
+      <a href="./changelog.html">Changelog</a>
+      <a href="./roadmap.html">Roadmap</a>
+      <a href="https://github.com/Dream-Pixels-Forge/spectrumalyzer" target="_blank" rel="noopener">GitHub&nbsp;↗</a>
+    </div>
+  </div>
+</nav>
+
+<main class="wrap">
+  <div class="doc-layout">
+    <aside class="doc-side">
+      <h4>On this page</h4>
+      <a href="#table">Format table</a>
+      <a href="#remotion">Remotion in 30 seconds</a>
+      <a href="#after-effects">After Effects in 30 seconds</a>
+      <a href="#json-anatomy">Raw JSON anatomy</a>
+      <h4>Docs</h4>
+      <a href="./cli.html">CLI reference</a>
+      <a href="./api.html">Python API</a>
+      <a href="./signals.html">Signal → animation</a>
+      <a href="./changelog.html">Changelog</a>
+      <a href="./roadmap.html">Roadmap</a>
+    </aside>
+
+    <article class="doc-content">
+      <h1>Export formats</h1>
+      <p class="doc-sub">One analysis, every dialect. The same measurements render into the exact format your tool expects — no drift between tools.</p>
+
+      <h2 id="table">Which one do I use?</h2>
+      <table>
+        <thead><tr><th>Format</th><th>File(s) produced</th><th>Use it in</th><th>You get</th></tr></thead>
+        <tbody>
+          <tr><td><code>json</code></td><td><code>*.json</code></td><td>Anything — custom scripts, AI agents, spreadsheets</td><td>The complete analysis: beats, onsets, sections, bands, centroid, loudness</td></tr>
+          <tr><td><code>remotion</code></td><td><code>*.remotion.json</code> + <code>*.useBeats.ts</code></td><td>Remotion (React videos)</td><td>Frame-native data <b>plus a ready React hook</b></td></tr>
+          <tr><td><code>hyperframes</code></td><td><code>*.hyperframes.json</code> + <code>*.hyperframes.snippet.html</code></td><td>HyperFrames compositions</td><td>Timeline events mapped to <code>data-hf-*</code> attributes and <code>hf-seek</code> listeners</td></tr>
+          <tr><td><code>ae</code></td><td><code>*.markers.jsx</code></td><td>After Effects</td><td>A script that stamps every beat/hit/section as a comp marker — snap layers to it</td></tr>
+          <tr><td><code>csv</code></td><td><code>*.markers.csv</code></td><td>Premiere Pro, DaVinci Resolve, Excel/Numbers</td><td>Universal marker table: index, type, time, <b>frame</b>, label, strength</td></tr>
+          <tr><td><code>fcpxml</code></td><td><code>*.fcpxml</code></td><td>Final Cut Pro, DaVinci Resolve, Compressor</td><td>Standards-based timeline with rational-time markers</td></tr>
+        </tbody>
+      </table>
+      <div class="callout"><div class="t">Note on <code>--fps</code></div>
+      <p>Everything except <code>json</code> needs <code>--fps</code> — the frame numbers can't be computed without a frame rate. The <code>json</code> format also gains frame fields when you pass <code>--fps</code>.</p></div>
+
+      <h2 id="remotion">Remotion in 30 seconds</h2>
+      <pre><code>spectrumalyzer analyze song.mp3 --fps 30 --format remotion
+# → song.remotion.json + song.useBeats.ts — copy both next to your composition</code></pre>
+      <pre><code>import { useBeatPop } from "./song.useBeats";
+
+export const MyScene = () => {
+  const scale = useBeatPop(0.15);   // pops 15% on every beat, springs back
+  return &lt;h1 style={{ transform: `scale(${scale})` }}&gt;ON BEAT&lt;/h1&gt;;
+};</code></pre>
+      <p>The generated hook also includes <code>useBeatIndex()</code>, <code>useBeatProgress()</code>, <code>useIsOnBeat(window)</code>, and the raw <code>BEATS</code> / <code>BPM</code> constants. The <code>bandsByFrame</code> array aligns 1:1 with <code>useCurrentFrame()</code> — each row is the six-band energy <code>[sub, bass, lowMid, mid, highMid, treble]</code> for that exact video frame, so <code>bands[useCurrentFrame()]</code> is your audio-reactive lookup with zero runtime math.</p>
+
+      <h2 id="after-effects">After Effects in 30 seconds</h2>
+      <pre><code>spectrumalyzer analyze song.mp3 --fps 30 --format ae
+# → song.markers.jsx — then: File → Scripts → Run Script File…</code></pre>
+      <p>Every beat, hit and section becomes a <b>named comp marker</b> (<code>beat 1</code>, <code>hit</code>, <code>section: peak</code>), stamped inside a single undo group. Enable Layer → Time → marker snapping and keyframe straight to the music. <code>csv</code> and <code>fcpxml</code> carry the same markers into Premiere, Resolve and Final Cut — run one analysis, deliver to every suite.</p>
+
+      <h2 id="json-anatomy">Raw JSON anatomy</h2>
+      <p>The <code>json</code> format is the complete analysis — everything the other renderers are built from. Abridged view (with <code>--fps 30</code>):</p>
+      <pre><code>{
+  "bpm": 128.32,
+  "bpmConfidence": 0.91,          // 0..1 — how strong the tempo pulse is
+  "fps": 30,
+  "durationInFrames": 7690,
+  "beats": [
+    { "time": 0.5012, "frame": 15, "strength": 0.87 }
+  ],
+  "onsets": [                      // raw transients — hits, not grid beats
+    { "time": 0.1203, "frame": 4, "strength": 1.0 }
+  ],
+  "bands": {
+    "names": ["sub", "bass", "lowMid", "mid", "highMid", "treble"],
+    "frameDuration": 0.0232,
+    "matrix": [[0.0, 0.42, 0.11, 0.05, 0.02, 0.01], "…per analysis frame"]
+  },
+  "bandsByFrame": "…same 6 values, resampled to one row per VIDEO frame",
+  "sections": [
+    { "start": 0.0, "end": 24.8, "label": "quiet", "energy": 0.22,
+      "startFrame": 0, "endFrame": 744 }
+  ]
+}</code></pre>
+      <p>What to animate with each of these: the <a href="./signals.html">signal → animation</a> page. If you add <code>--embed</code>, a <code>description</code> + <code>tags</code> block from the <a href="./semantic.html">semantic layer</a> is attached to the same file.</p>
+
+      <div class="pager">
+        <a href="./api.html"><span class="lbl">Previous</span>← Python API</a>
+        <a class="next" href="./signals.html"><span class="lbl">Next</span>Signals →</a>
+      </div>
+    </article>
+  </div>
+</main>
+
+<footer class="footer">
+  <div class="wrap">
+    <span>MIT License</span>
+    <a href="https://github.com/Dream-Pixels-Forge/spectrumalyzer" target="_blank" rel="noopener">GitHub</a>
+    <a href="https://pypi.org/project/spectrumalyzer/" target="_blank" rel="noopener">PyPI</a>
+    <span class="spacer"></span>
+    <span>dream-pixels-forge · open source</span>
+  </div>
+</footer>
+
+</body>
+</html>

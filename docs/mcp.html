@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MCP &amp; agents — spectrumalyzer</title>
+  <meta name="description" content="Run spectrumalyzer as a stdio MCP server (spectrumalyzer mcp), register it with Claude Desktop or pi, use the seven native tools, and install the agent skill.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230a0b0d'/%3E%3Cpath d='M8 20c0-4 2-8 4-8s4 4 4 8-2 8-4 8-4-4-4-8zm8-6c0-2.5 1.5-5 3-5s3 2.5 3 5' stroke='%23ff7a1a' stroke-width='2.2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="./site.css">
+</head>
+<body>
+
+<nav class="nav">
+  <div class="nav-inner">
+    <a class="brand" href="./"><span class="logo-dot"></span>spectrum<b>alyzer</b></a>
+    <div class="nav-links">
+      <a href="./">Home</a>
+      <span class="nav-sep"></span>
+      <a href="./cli.html">CLI</a>
+      <a href="./api.html">Python API</a>
+      <a href="./formats.html">Formats</a>
+      <a href="./signals.html">Signals</a>
+      <a href="./semantic.html">Semantic</a>
+      <a class="active" href="./mcp.html">MCP / Agents</a>
+      <span class="nav-sep"></span>
+      <a href="./changelog.html">Changelog</a>
+      <a href="./roadmap.html">Roadmap</a>
+      <a href="https://github.com/Dream-Pixels-Forge/spectrumalyzer" target="_blank" rel="noopener">GitHub&nbsp;↗</a>
+    </div>
+  </div>
+</nav>
+
+<main class="wrap">
+  <div class="doc-layout">
+    <aside class="doc-side">
+      <h4>On this page</h4>
+      <a href="#run">Run the server</a>
+      <a href="#register">Register with your client</a>
+      <a href="#tools">Tool table</a>
+      <a href="#skill">Agent skill</a>
+      <h4>Docs</h4>
+      <a href="./cli.html">CLI reference</a>
+      <a href="./semantic.html">Semantic hearing</a>
+      <a href="./changelog.html">Changelog</a>
+      <a href="./roadmap.html">Roadmap</a>
+    </aside>
+
+    <article class="doc-content">
+      <h1>MCP &amp; agents</h1>
+      <p class="doc-sub">spectrumalyzer as native tools for AI agents — a blocking stdio MCP server plus an installable agent skill. Everything stays local.</p>
+
+      <h2 id="run">Run the server</h2>
+      <pre><code>spectrumalyzer mcp    # blocking stdio MCP server</code></pre>
+      <p>The server exposes analysis, semantic hearing, export and trim as native MCP tools over stdin/stdout. It's blocking by design — launch it as a long-lived process from the client's MCP config, exactly like any stdio server.</p>
+
+      <h2 id="register">Register with your client</h2>
+      <h3>Claude Desktop (or any JSON-config MCP host)</h3>
+      <pre><code>{
+  "mcpServers": {
+    "spectrumalyzer": { "command": "spectrumalyzer", "args": ["mcp"] }
+  }
+}</code></pre>
+      <h3>pi / pi-coding-agent</h3>
+      <p>Add to <code>~/.pi/agent/mcp.json</code>:</p>
+      <pre><code>{"mcpServers": {"spectrumalyzer": {"command": "spectrumalyzer", "args": ["mcp"]}}}</code></pre>
+      <p>Once registered, the agent gets the tools below natively — ask it to "analyze this track and export Remotion beats" and it runs the full pipeline without shell access.</p>
+
+      <h2 id="tools">Tool table</h2>
+      <table>
+        <thead><tr><th>Tool</th><th>What the agent gets</th></tr></thead>
+        <tbody>
+          <tr><td><code>analyze_audio</code></td><td>BPM, beat grid, onsets, sections (lean JSON; pass <code>include_analysis</code> for the full band matrices)</td></tr>
+          <tr><td><code>describe_audio</code></td><td>Natural-language description + mood/energy/flavor/use tags</td></tr>
+          <tr><td><code>find_music</code></td><td>Semantic search over a library ("calm warm bed for an intro")</td></tr>
+          <tr><td><code>export_beats</code></td><td>Writes Remotion / HyperFrames / AE / FCPXML / CSV deliverables</td></tr>
+          <tr><td><code>render_report</code></td><td>Self-contained HTML visual report</td></tr>
+          <tr><td><code>model_status</code></td><td>Embedding model state (diagnostics)</td></tr>
+          <tr><td><code>trim_audio</code></td><td>Best short version of a long track/video for video use (window + ffmpeg cut)</td></tr>
+        </tbody>
+      </table>
+      <div class="callout"><div class="t">Failure behavior</div>
+      <p>Tools are read-only with respect to your audio; the only writes are the explicit deliverable paths you pass (<code>export_beats</code>, <code>render_report</code>, <code>trim_audio</code>). Errors come back as structured <code>{"error": ...}</code> payloads instead of crashes, so agents can react gracefully.</p></div>
+
+      <h2 id="skill">Agent skill — teach your agent to use it</h2>
+      <p>Install the spectrumalyzer skill into any skill-aware agent (pi, Claude Code, OpenCode, …):</p>
+      <pre><code>npx skills add Dream-Pixels-Forge/spectrumalyzer/skills/spectrumalyzer</code></pre>
+      <div class="callout tip"><div class="t">Path format</div>
+      <p>The skills CLI takes <code>owner/repo/subpath</code> — GitHub's <code>tree/&lt;branch&gt;/</code> URL syntax is not supported (it would be treated as a literal folder name).</p></div>
+      <p>The skill lives in this repo at <a href="https://github.com/Dream-Pixels-Forge/spectrumalyzer/blob/main/skills/spectrumalyzer/SKILL.md">skills/spectrumalyzer/SKILL.md</a> and covers when and how to use spectrumalyzer: analysis for scene timing, semantic music search, the signal→animation mapping (bass → glow, treble → sparkle), MCP tool selection, and export-format choice per creative tool. Useful even before the MCP server is registered — and complementary to it.</p>
+
+      <div class="pager">
+        <a href="./semantic.html"><span class="lbl">Previous</span>← Semantic hearing</a>
+        <a class="next" href="./changelog.html"><span class="lbl">Next</span>Changelog →</a>
+      </div>
+    </article>
+  </div>
+</main>
+
+<footer class="footer">
+  <div class="wrap">
+    <span>MIT License</span>
+    <a href="https://github.com/Dream-Pixels-Forge/spectrumalyzer" target="_blank" rel="noopener">GitHub</a>
+    <a href="https://pypi.org/project/spectrumalyzer/" target="_blank" rel="noopener">PyPI</a>
+    <span class="spacer"></span>
+    <span>dream-pixels-forge · open source</span>
+  </div>
+</footer>
+
+</body>
+</html>
