@@ -120,7 +120,7 @@ versioning follows [Semantic Versioning](https://semver.org/).
   not GitHub's `tree/<branch>/` URL syntax (verified live — found + installed
   the skill to 13 agent platforms).
 
-## [Unreleased] — trimmer (v0.6.0)
+## [0.6.0] — 2026-11-02
 
 ### Added
 - **Trimmer** — make a short version of a long track for video use:
