@@ -5,7 +5,7 @@
 - Branch: `main`
 - Started: 2026-10-11
 - Current Phase: 3 (Engineer)
-- Status: **in progress** — v0.6.0 trimmer (short versions for video); version bumped to 0.6.0, release pending; v0.5.2 shipped 2026-10-11
+- Status: **shipped** — v0.6.0 trimmer + release live on PyPI (2026-11-02)
 
 ## v0.6.0 Trimmer (2026-11-02, in progress)
 - [x] `spectrumalyzer trim AUDIO_OR_VIDEO --length N [-o] [--crossfade] [--preview]`
@@ -17,7 +17,7 @@
 - [x] 15 new tests (109 total green, ruff clean); end-to-end verified on a 90 s track
       (30 s target → chorus window 44.8–74.7 s) and an mp4
 - [x] Version bump 0.6.0 (pyproject + _version.py + CHANGELOG finalized, 2026-11-02)
-- [ ] PyPI release of v0.6.0 (on user's go)
+- [x] PyPI release of v0.6.0 (tag v0.6.0 → trusted-publishing workflow, green 2026-11-02)
 
 ## Shipped Milestones
 - **v0.2.0** — "Creative Toolkit": real STFT/spectral-flux engine, 6 exporters, HTML report,
