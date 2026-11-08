@@ -23,7 +23,8 @@
 - [x] MCP `analyze_audio` payload includes key; `describe()` mentions
       key + palette (richer semantic search)
 - [x] 10 new tests (132 total green, ruff clean)
-- [ ] Release v0.8.0 (version bump + tag + PyPI, on user's go)
+- [x] Release v0.8.0 (tag v0.8.0 → PyPI live 2026-11-08; three-way check
+      CODE == TAG == REL == PYPI == 0.8.0, wheel contains harmony.py)
 
 ## v0.7.0 Bars & Downbeats (2026-11-08)
 - [x] `detect_bars()` in `analysis/beats.py` — 4/4 grouping on the beat grid,
