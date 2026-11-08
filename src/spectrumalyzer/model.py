@@ -48,6 +48,10 @@ class Beat:
     time: float  # seconds
     strength: float = 1.0  # 0..1 normalized onset strength
     frame: int | None = None  # filled when fps was requested
+    tier: str | None = None  # "downbeat" | "accent" | "normal" | None
+
+    def copy(self) -> Beat:
+        return Beat(time=self.time, strength=self.strength, frame=self.frame, tier=self.tier)
 
     def to_dict(self, fps: float | None = None) -> dict[str, Any]:
         d: dict[str, Any] = {"time": round(self.time, 4), "strength": round(self.strength, 3)}
@@ -56,6 +60,8 @@ class Beat:
         )
         if f is not None:
             d["frame"] = f
+        if self.tier is not None:
+            d["tier"] = self.tier
         return d
 
 
@@ -262,6 +268,24 @@ class Bars:
 
 
 @dataclass
+class ImpactTiers:
+    """Summary of the beat impact-tier labels (downbeat / accent / normal).
+
+    ``accent_quantile`` is the strength threshold that split the non-downbeat
+    beats into accents — a statistical emphasis knob, not a loudness claim.
+    """
+
+    accent_quantile: float = 0.75
+    counts: dict[str, int] = field(default_factory=dict)
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "accentQuantile": round(self.accent_quantile, 3),
+            "counts": dict(self.counts),
+        }
+
+
+@dataclass
 class AnalysisResult:
     """Complete analysis of one audio file."""
 
@@ -274,6 +298,7 @@ class AnalysisResult:
     onsets: list[Beat] = field(default_factory=list)  # raw transients / hits
     bars: Bars | None = None
     key: KeyResult | None = None
+    impact_tiers: ImpactTiers | None = None
     sections: list[Section] = field(default_factory=list)
     bands: BandData | None = None
     centroid: list[float] = field(default_factory=list)  # per analysis frame, Hz
@@ -322,6 +347,8 @@ class AnalysisResult:
             d.update(self.bars.to_dict(f))
         if self.key is not None:
             d.update(self.key.to_dict())
+        if self.impact_tiers is not None:
+            d["impactTiers"] = self.impact_tiers.to_dict()
         if f:
             d["fps"] = f
             d["durationInFrames"] = time_to_frame(self.duration, f)

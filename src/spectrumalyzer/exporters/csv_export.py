@@ -19,19 +19,20 @@ def render(result: AnalysisResult) -> str:
     fps = _require_fps(result)
     buf = io.StringIO()
     writer = csv.writer(buf, lineterminator="\n")
-    writer.writerow(["index", "type", "time", "frame", "label", "strength", "bpm"])
+    writer.writerow(["index", "type", "time", "frame", "label", "strength", "bpm", "tier"])
     i = 1
     for b in result.beat_grid:
         writer.writerow([i, "beat", f"{b.time:.4f}", time_to_frame(b.time, fps),
-                         f"beat {i}", f"{b.strength:.3f}", round(result.bpm, 2)])
+                         f"beat {i}", f"{b.strength:.3f}", round(result.bpm, 2),
+                         b.tier or ""])
         i += 1
     for o in result.onsets:
         writer.writerow([i, "hit", f"{o.time:.4f}", time_to_frame(o.time, fps),
-                         "hit", f"{o.strength:.3f}", round(result.bpm, 2)])
+                         "hit", f"{o.strength:.3f}", round(result.bpm, 2), ""])
         i += 1
     for s in result.sections:
         writer.writerow([i, "section", f"{s.start:.4f}", time_to_frame(s.start, fps),
-                         f"section: {s.label}", f"{s.energy:.3f}", round(result.bpm, 2)])
+                         f"section: {s.label}", f"{s.energy:.3f}", round(result.bpm, 2), ""])
         i += 1
     if result.key is not None and result.key.key != "unknown":
         pal = result.key.palette or {}
@@ -40,17 +41,17 @@ def render(result: AnalysisResult) -> str:
             f"{pal.get('label', '')} {' '.join(pal.get('hexes', []))}"
         )
         writer.writerow([i, "key", "0.0000", 0, key_label,
-                         f"{result.key.confidence:.3f}", round(result.bpm, 2)])
+                         f"{result.key.confidence:.3f}", round(result.bpm, 2), ""])
         i += 1
     if result.bars is not None:
         for bar in result.bars:
             f = bar.frame if bar.frame is not None else time_to_frame(bar.downbeat_time, fps)
             writer.writerow([i, "bar", f"{bar.downbeat_time:.4f}", f,
-                             f"bar {bar.index + 1}", f"{bar.beat_count}", round(result.bpm, 2)])
+                             f"bar {bar.index + 1}", f"{bar.beat_count}", round(result.bpm, 2), ""])
             i += 1
         for bar in result.bars:
             f = bar.downbeat_frame if bar.downbeat_frame is not None else time_to_frame(bar.downbeat_time, fps)
             writer.writerow([i, "downbeat", f"{bar.downbeat_time:.4f}", f,
-                             f"BAR {bar.index + 1} ↓", f"{bar.beat_count}", round(result.bpm, 2)])
+                             f"BAR {bar.index + 1} ↓", f"{bar.beat_count}", round(result.bpm, 2), "downbeat"])
             i += 1
     return buf.getvalue()

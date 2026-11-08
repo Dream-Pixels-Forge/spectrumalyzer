@@ -7,13 +7,22 @@ import math
 import numpy as np
 
 from spectrumalyzer._version import __version__
-from spectrumalyzer.analysis.beats import detect_bars, detect_beats
+from spectrumalyzer.analysis.beats import detect_bars, detect_beats, impact_tiers
 from spectrumalyzer.analysis.features import loudness_envelope, waveform_peaks
 from spectrumalyzer.analysis.harmony import detect_key
 from spectrumalyzer.analysis.spectrum import compute_bands, spectral_centroid
 from spectrumalyzer.analysis.structure import detect_sections
 from spectrumalyzer.audio import DEFAULT_SAMPLE_RATE, load
-from spectrumalyzer.model import AnalysisResult
+from spectrumalyzer.model import AnalysisResult, ImpactTiers
+
+
+def _build_impact_tiers(beats: list, accent_quantile: float):
+    """Build the ImpactTiers summary from a tiered beat grid."""
+    from collections import Counter
+
+
+    counts = Counter(b.tier for b in beats if b.tier is not None)
+    return ImpactTiers(accent_quantile=accent_quantile, counts=dict(counts))
 
 
 def analyze(
@@ -22,6 +31,7 @@ def analyze(
     bands: bool = True,
     sections: bool = True,
     key: bool = True,
+    accent_quantile: float = 0.75,
     min_bpm: float = 60.0,
     max_bpm: float = 200.0,
     sample_rate: int = DEFAULT_SAMPLE_RATE,
@@ -88,6 +98,8 @@ def analyze(
         confidence=result.bpm_confidence,
         fps=fps,
     )
+    impact_tiers(result.beat_grid, result.bars, accent_quantile=accent_quantile)
+    result.impact_tiers = _build_impact_tiers(result.beat_grid, accent_quantile)
     if key:
         result.key = detect_key(pcm, sr)
     return result

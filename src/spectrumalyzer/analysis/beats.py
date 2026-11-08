@@ -213,6 +213,56 @@ def _phase_from_envelope(env: np.ndarray, period_frames: float) -> tuple[float, 
     return best_offset, best_score
 
 
+def impact_tiers(
+    beat_grid: list[Beat],
+    bars: Bars | None,
+    accent_quantile: float = 0.75,
+) -> list[Beat]:
+    """Label each beat as downbeat / accent / normal.
+
+    Rides the existing bar grid (no new DSP):
+      - **downbeat** — the first beat of each bar
+      - **accent**   — the top ``accent_quantile`` of the *non-downbeat*
+        beats by strength (a statistical emphasis, not a loudness claim)
+      - **normal**   — everything else
+
+    If ``bars`` is None (pulseless track / no grid) the beats are returned
+    with ``tier=None`` — no invented emphasis. Mutates and returns the grid.
+    """
+    if not beat_grid:
+        return beat_grid
+    if bars is None or not bars.bars:
+        for b in beat_grid:
+            b.tier = None
+        return beat_grid
+
+    downbeats = set()
+    for bar in bars.bars:
+        if bar.beat_indices:
+            downbeats.add(bar.beat_indices[0])
+
+    for i, b in enumerate(beat_grid):
+        if i in downbeats:
+            b.tier = "downbeat"
+        else:
+            b.tier = "normal"
+
+    # Accents: the non-downbeat beats at or above the ``accent_quantile``
+    # strength threshold (a statistical emphasis, not a loudness claim).
+    # A lower quantile raises the bar for "accent" coverage — i.e. it labels
+    # MORE beats as accents (top 75% at q=0.25 vs top 10% at q=0.9).
+    if accent_quantile < 1.0:
+        non_down = [b for b in beat_grid if b.tier == "normal"]
+        if non_down:
+            strengths = sorted(b.strength for b in non_down)
+            threshold = strengths[int(len(strengths) * accent_quantile)]
+            for b in beat_grid:
+                if b.tier == "normal" and b.strength >= threshold:
+                    b.tier = "accent"
+
+    return beat_grid
+
+
 def detect_bars(
     beat_grid: list[Beat],
     bpm: float,

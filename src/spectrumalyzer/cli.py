@@ -114,6 +114,11 @@ def build_parser() -> argparse.ArgumentParser:
         "--no-key", action="store_true", help="Skip musical key detection (Krumhansl-Schmuckler)"
     )
     p_analyze.add_argument(
+        "--accent-q", type=float, default=0.75,
+        help="Impact-tier accent threshold: fraction of non-downbeat beats labelled "
+             "'accent' by strength (lower = more accents). Default 0.75",
+    )
+    p_analyze.add_argument(
         "--stdout", action="store_true", help="Write JSON of the first format to stdout"
     )
     p_analyze.add_argument(
@@ -250,6 +255,7 @@ def cmd_analyze(args: argparse.Namespace) -> int:
         bands=not args.no_bands,
         sections=not args.no_sections,
         key=not args.no_key,
+        accent_quantile=args.accent_q,
         min_bpm=args.min_bpm,
         max_bpm=args.max_bpm,
     )
@@ -261,6 +267,14 @@ def cmd_analyze(args: argparse.Namespace) -> int:
         f"{len(result.sections)} sections · "
         f"key {result.key.key if result.key else '—'} · {result.duration:.1f}s",
     )
+    if result.impact_tiers is not None and result.impact_tiers.counts:
+        c = result.impact_tiers.counts
+        _log(
+            args.quiet,
+            f"Tiers: {c.get('downbeat', 0)} downbeats · "
+            f"{c.get('accent', 0)} accents · {c.get('normal', 0)} normal "
+            f"(accent q={result.impact_tiers.accent_quantile:.2f})",
+        )
 
     extra_payload: dict = {}
     if getattr(args, "embed", False):

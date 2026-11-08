@@ -4,6 +4,22 @@ All notable changes to spectrumalyzer are documented here.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 versioning follows [Semantic Versioning](https://semver.org/).
 
+## [0.9.0] — 2026-11-08
+
+### Added
+- **Beat impact tiers** — pre-labelled emphasis on the existing beat grid
+  (rides the bar grid + beat strength, no new DSP):
+  - `impact_tiers(beat_grid, bars, accent_quantile=0.75)` in
+    `analysis/beats.py` labels each beat `downbeat` (bar start), `accent`
+    (top-strength non-downbeats at the quantile threshold) or `normal`
+  - `Beat.tier` field + `ImpactTiers` summary (accent quantile + counts);
+    `ImpactTiers.to_dict()` → `impactTiers`
+  - `analyze(accent_quantile=0.75)` + CLI `--accent-q`; pulseless tracks
+    keep `tier=None` (no invented emphasis)
+  - All 6 exporters carry tiers (JSON `beatTiers`/`impactTiers`,
+    Remotion `beatTiers`, CSV `tier` column, AE/FCPXML/HyperFrames labels)
+  - 9 new tests (141 total green, ruff clean)
+
 ## [0.8.0] — 2026-11-08
 
 ### Added

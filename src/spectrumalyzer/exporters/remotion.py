@@ -55,6 +55,9 @@ def render(result: AnalysisResult) -> str:
         data["keyConfidence"] = round(result.key.confidence, 3)
         data["camelot"] = result.key.camelot
         data["palette"] = result.key.palette
+    if result.impact_tiers is not None:
+        data["beatTiers"] = [b.tier for b in result.beat_grid]
+        data["impactTiers"] = result.impact_tiers.to_dict()
     rows = result.band_rows_at_fps()
     if rows is not None:
         data["bandsByFrame"] = rows

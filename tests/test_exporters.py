@@ -96,6 +96,92 @@ def test_json_key_export():
     assert "palette" in data
 
 
+def test_json_tiers_export():
+    import os
+    import tempfile
+    import wave
+
+    import numpy as np
+
+    from spectrumalyzer.api import analyze
+    from spectrumalyzer.exporters import export
+
+    # A beat-locked 120 BPM track (clicks on every beat) so tiers have a grid
+    def _beats_pcm(bpm=120.0, duration_s=12.0, sample_rate=44100):
+        sr = sample_rate
+        n = int(duration_s * sr)
+        audio = (np.random.default_rng(1).standard_normal(n) * 0.01).astype(np.float64)
+        period = 60.0 / bpm
+        click_len = int(0.03 * sr)
+        t = np.arange(click_len) / sr
+        click = np.sin(2 * np.pi * 1000.0 * t) * np.exp(-t * 120.0)
+        bt = 0.2
+        while bt < duration_s - 0.1:
+            s = int(bt * sr)
+            e = min(s + click_len, n)
+            audio[s:e] += click[: e - s] * 0.9
+            bt += period
+        return audio.astype(np.float32)
+
+    with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tf:
+        p = tf.name
+    with wave.open(p, "wb") as w:
+        w.setnchannels(1); w.setsampwidth(2); w.setframerate(44100)
+        w.writeframes((np.clip(_beats_pcm(), -1, 1) * 32767).astype(np.int16).tobytes())
+    r = analyze(p, fps=30)
+    os.unlink(p)
+    assert r.impact_tiers is not None, "tiers should be present on a beat-locked track"
+    data = json.loads(export(r, "json"))
+    assert "impactTiers" in data
+    assert data["impactTiers"]["accentQuantile"] == 0.75
+    assert sum(data["impactTiers"]["counts"].values()) > 0
+    # every beat dict carries a tier key now
+    assert "tier" in data["beats"][0]
+    # tier labels are one of the three values (or absent when None)
+    allowed = {"downbeat", "accent", "normal"}
+    for b in data["beats"]:
+        assert b.get("tier") in allowed or b.get("tier") is None
+
+
+def test_remotion_tiers_export():
+    import os
+    import tempfile
+    import wave
+
+    import numpy as np
+
+    from spectrumalyzer.api import analyze
+    from spectrumalyzer.exporters import export
+
+    def _beats_pcm(bpm=120.0, duration_s=12.0, sample_rate=44100):
+        sr = sample_rate
+        n = int(duration_s * sr)
+        audio = (np.random.default_rng(1).standard_normal(n) * 0.01).astype(np.float64)
+        period = 60.0 / bpm
+        click_len = int(0.03 * sr)
+        t = np.arange(click_len) / sr
+        click = np.sin(2 * np.pi * 1000.0 * t) * np.exp(-t * 120.0)
+        bt = 0.2
+        while bt < duration_s - 0.1:
+            s = int(bt * sr)
+            e = min(s + click_len, n)
+            audio[s:e] += click[: e - s] * 0.9
+            bt += period
+        return audio.astype(np.float32)
+
+    with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tf:
+        p = tf.name
+    with wave.open(p, "wb") as w:
+        w.setnchannels(1); w.setsampwidth(2); w.setframerate(44100)
+        w.writeframes((np.clip(_beats_pcm(), -1, 1) * 32767).astype(np.int16).tobytes())
+    r = analyze(p, fps=30)
+    os.unlink(p)
+    data = json.loads(export(r, "remotion"))
+    assert "beatTiers" in data
+    assert "impactTiers" in data
+    assert len(data["beatTiers"]) == len(r.beat_grid)
+
+
 def test_json_key_absent_when_unknown():
     import os
     import tempfile

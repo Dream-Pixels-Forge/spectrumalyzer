@@ -14,10 +14,10 @@ CLI:
 """
 
 from spectrumalyzer._version import __version__
-from spectrumalyzer.analysis.beats import detect_bars
+from spectrumalyzer.analysis.beats import detect_bars, impact_tiers
 from spectrumalyzer.analysis.harmony import detect_key
 from spectrumalyzer.api import analyze
-from spectrumalyzer.model import AnalysisResult, Bar, Bars, Beat, KeyResult, Section
+from spectrumalyzer.model import AnalysisResult, Bar, Bars, Beat, ImpactTiers, KeyResult, Section
 from spectrumalyzer.trimmer import TrimSelection, select_trim_window, trim, trim_audio
 
 __all__ = [
@@ -25,6 +25,7 @@ __all__ = [
     "Bar",
     "Bars",
     "Beat",
+    "ImpactTiers",
     "KeyResult",
     "Section",
     "TrimSelection",
@@ -32,6 +33,7 @@ __all__ = [
     "analyze",
     "detect_bars",
     "detect_key",
+    "impact_tiers",
     "select_trim_window",
     "trim",
     "trim_audio",

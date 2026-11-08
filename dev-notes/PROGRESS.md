@@ -5,7 +5,21 @@
 - Branch: `main`
 - Started: 2026-10-11
 - Current Phase: 3 (Engineer)
-- Status: **shipped** — v0.8.0 key detection, live on PyPI (2026-11-08)
+- Status: **shipped** — v0.9.0 beat impact tiers, live on PyPI (2026-11-08)
+
+## v0.9.0 Beat Impact Tiers (2026-11-08)
+- [x] `impact_tiers(beat_grid, bars, accent_quantile)` in `analysis/beats.py`
+      — labels each beat `downbeat` (bar start), `accent` (top-strength
+      non-downbeats at the quantile threshold), `normal`
+- [x] `Beat.tier` field + `ImpactTiers` summary (accent quantile + counts)
+      on the model; `ImpactTiers.to_dict()` → `impactTiers`
+- [x] `analyze(accent_quantile=0.75)` + CLI `--accent-q`; pulseless tracks
+      keep `tier=None`
+- [x] All 6 exporters carry tiers (JSON `beatTiers`/`impactTiers`,
+      Remotion `beatTiers`, CSV `tier` column, AE/FCPXML/HyperFrames labels)
+- [x] 9 new tests (141 total green, ruff clean)
+- [x] Release v0.9.0 (tag v0.9.0 → PyPI live 2026-11-08; three-way check
+      CODE == TAG == REL == PYPI == 0.9.0)
 
 ## v0.8.0 Key Detection (2026-11-08)
 - [x] `analysis/harmony.py` — chromagram (numpy STFT + log-spaced pitch-class

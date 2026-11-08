@@ -66,8 +66,12 @@
       (deterministic color-grade from the Camelot slot). Key + Camelot +
       palette in all 6 exporters, JSON, MCP, CLI summary, HTML report;
       "unknown" (confidence 0) on pulseless/ambient material.
-- [ ] **Beat-strength quantiles → "impact tiers"** — pre-label beats as
+- [x] **Beat-strength quantiles → "impact tiers"** — pre-label beats as
       normal/accent/downbeat-adjacent for automatic edit emphasis.
+      **Shipped in v0.9.0**: `impact_tiers()` labels each beat
+      `downbeat` / `accent` / `normal` from the bar grid + beat strength,
+      with a configurable `--accent-q` quantile; tier labels in all 6
+      exporters, JSON `beatTiers`/`impactTiers`, CSV `tier` column.
 
 ### v0.4 — workflow integration
 - [ ] **Cut-list generator** — `spectrumalyzer cuts track.mp3 --every 4beats
