@@ -15,12 +15,12 @@ from spectrumalyzer.exporters import (
     export_filename,
     extra_files,
 )
-from spectrumalyzer.model import AnalysisResult, Beat, Section
+from spectrumalyzer.model import AnalysisResult, Bar, Bars, Beat, Section
 
 
 @pytest.fixture
 def result() -> AnalysisResult:
-    """Small deterministic result: 120 BPM, beats every 0.5 s, fps=30."""
+    """Small deterministic result: 120 BPM, beats every 0.5 s, fps=30, bars every 4 beats."""
     beats = [Beat(time=0.0 + i * 0.5, strength=0.8) for i in range(9)]
     r = AnalysisResult(
         path="song.mp3",
@@ -34,6 +34,17 @@ def result() -> AnalysisResult:
             Section(start=0.0, end=2.0, energy=0.4, label="quiet"),
             Section(start=2.0, end=4.5, energy=1.0, label="peak"),
         ],
+        bars=Bars(
+            bars=[
+                Bar(index=0, beat_indices=[0, 1, 2, 3], downbeat_time=0.0,
+                    start_time=0.0, end_time=2.0, frame=0, end_frame=60, downbeat_frame=0),
+                Bar(index=1, beat_indices=[4, 5, 6, 7], downbeat_time=2.0,
+                    start_time=2.0, end_time=4.0, frame=60, end_frame=120, downbeat_frame=60),
+                Bar(index=2, beat_indices=[8], downbeat_time=4.0,
+                    start_time=4.0, end_time=4.5, frame=120, end_frame=135, downbeat_frame=120),
+            ],
+            confidence=0.9,
+        ),
         fps=30.0,
         metadata={"version": "0.2.0", "analyzer": "spectrumalyzer"},
     )
@@ -76,8 +87,12 @@ def test_hyperframes_export(result):
     assert "timeline" in data
     assert data["timeline"]["fps"] == 30
     events = data["timeline"]["events"]
+    # frame 0 has beat, bar and downbeat — all tied on (frame, type),
+    # so "bar" < "beat" alphabetically puts bar first
     assert events[0]["frame"] == 0
-    assert events[0]["type"] == "beat"
+    assert events[0]["type"] == "bar"
+    beat_events = [e for e in events if e["type"] == "beat"]
+    assert beat_events[0]["frame"] == 0
 
 
 def test_hyperframes_snippet(result):
@@ -100,7 +115,8 @@ def test_aftereffects_jsx(result):
 def test_csv_export(result):
     text = export(result, "csv")
     rows = list(csv.DictReader(io.StringIO(text)))
-    assert len(rows) == len(result.beat_grid) + len(result.onsets) + len(result.sections)
+    bar_rows = [r for r in rows if r["type"] in ("bar", "downbeat")]
+    assert len(rows) == len(result.beat_grid) + len(result.onsets) + len(result.sections) + len(bar_rows)
     assert {"index", "type", "time", "frame", "label"} <= set(rows[0].keys())
     beat_rows = [r for r in rows if r["type"] == "beat"]
     assert beat_rows[1]["frame"] == "15"

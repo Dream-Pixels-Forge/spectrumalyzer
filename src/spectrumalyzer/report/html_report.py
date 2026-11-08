@@ -75,6 +75,7 @@ _TEMPLATE = """<!DOCTYPE html>
       <span><i style="background:var(--accent)"></i>beats (height = strength)</span>
       <span><i style="background:var(--accent2)"></i>onsets / hits</span>
       <span><i style="background:#f59e0b"></i>sections</span>
+      <span><i style="background:#2dd4bf"></i>bars (downbeat ticks)</span>
     </div>
   </div>
 
@@ -82,6 +83,11 @@ _TEMPLATE = """<!DOCTYPE html>
     <h2>Frequency bands over time</h2>
     <canvas id="bands" height="150"></canvas>
     <div class="legend" id="band-legend"></div>
+  </div>
+
+  <div class="panel">
+    <h2>Bars & downbeats</h2>
+    <canvas id="bars" height="48"></canvas>
   </div>
 
   <div class="panel">
@@ -188,6 +194,27 @@ window.__SPECTRUMALYZER__ = __PAYLOAD__;
         ctx.fillRect((f / nFrames) * w, b * rowH + 1, Math.max(1, w / nFrames + 0.5), rowH - 2);
       }
     }
+  })();
+
+  // ---- bars + downbeats ---------------------------------------------------
+  (function drawBars() {
+    if (!D.bars || !D.bars.length) return;
+    const { ctx, w, h } = setupCanvas('bars');
+    ctx.fillStyle = '#0b0e14'; ctx.fillRect(0, 0, w, h);
+    const t2x = t => (t / D.duration) * w;
+    D.bars.forEach(b => {
+      const x0 = t2x(b.start != null ? b.start : b.time);
+      const x1 = t2x(b.end);
+      ctx.fillStyle = 'rgba(45,212,191,0.35)';
+      ctx.fillRect(x0, 8, Math.max(2, x1 - x0 - 1), h - 24);
+      // downbeat tick at the bar start
+      ctx.fillStyle = '#2dd4bf';
+      ctx.fillRect(x0 - 1, 4, 2, h - 8);
+      if (x1 - x0 > 30) {
+        ctx.fillStyle = '#e6e9f0'; ctx.font = '11px sans-serif';
+        ctx.fillText('BAR ' + (b.index + 1), x0 + 5, h / 2);
+      }
+    });
   })();
 
   // ---- sections ----------------------------------------------------------

@@ -36,6 +36,20 @@ def render(result: AnalysisResult) -> str:
             "type": "onset",
             "strength": round(o.strength, 3),
         })
+    if result.bars is not None:
+        for bar in result.bars:
+            f = bar.frame if bar.frame is not None else time_to_frame(bar.downbeat_time, fps)
+            events.append({
+                "frame": f,
+                "type": "bar",
+                "index": bar.index,
+                "endFrame": bar.end_frame if bar.end_frame is not None else time_to_frame(bar.end_time, fps),
+            })
+            events.append({
+                "frame": f,
+                "type": "downbeat",
+                "index": bar.index,
+            })
     for s in result.sections:
         events.append({
             "frame": time_to_frame(s.start, fps),

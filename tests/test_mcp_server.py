@@ -38,6 +38,10 @@ def test_analyze_audio_returns_lean_payload(click_120, server):
     assert data["beats"] and data["beats"][0]["frame"] >= 0
     assert "bands" not in data  # lean by default — no huge matrices
     assert "duration" in data and "sections" in data
+    # bars are lightweight and always present
+    assert "bars" in data and "downbeats" in data
+    assert data["barCount"] > 0
+    assert 0.0 <= data["downbeatConfidence"] <= 1.0
 
 
 def test_analyze_audio_include_analysis(click_120, server):

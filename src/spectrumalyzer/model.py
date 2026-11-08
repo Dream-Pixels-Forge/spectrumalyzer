@@ -60,6 +60,51 @@ class Beat:
 
 
 @dataclass
+class Bar:
+    """A measure (4 beats) on the bar grid.
+
+    ``downbeat_time`` is the first beat of the bar (beat 1 of the 4/4 cycle).
+    The ``frame`` fields mirror the beat frame math so consumers that work in
+    frames (Remotion, HyperFrames, AE) can drive measure-level effects without
+    runtime math.
+    """
+
+    index: int  # 0-based bar number
+    beat_indices: list[int]  # indices into the beat grid this bar spans
+    downbeat_time: float  # seconds — start of the bar
+    start_time: float  # alias for downbeat_time (explicit for clarity)
+    end_time: float  # seconds — end of the bar (downbeat_time + 4 * beat_period)
+    downbeat_frame: int | None = None
+    frame: int | None = None
+    end_frame: int | None = None
+
+    @property
+    def time(self) -> float:
+        return self.downbeat_time
+
+    @property
+    def beat_count(self) -> int:
+        return len(self.beat_indices)
+
+    def to_dict(self, fps: float | None = None) -> dict[str, Any]:
+        d: dict[str, Any] = {
+            "index": self.index,
+            "beats": len(self.beat_indices),
+            "time": round(self.downbeat_time, 4),
+            "start": round(self.start_time, 4),
+            "end": round(self.end_time, 4),
+        }
+        f = self.downbeat_frame if self.downbeat_frame is not None else (
+            time_to_frame(self.downbeat_time, fps) if fps else None
+        )
+        if f is not None:
+            d["downbeatFrame"] = f
+            d["startFrame"] = self.frame if self.frame is not None else f
+            d["endFrame"] = self.end_frame if self.end_frame is not None else time_to_frame(self.end_time, fps)
+        return d
+
+
+@dataclass
 class Section:
     """A structural region of the track (intro, build, peak, ...)."""
 
@@ -138,6 +183,51 @@ class BandData:
 
 
 @dataclass
+class Bars:
+    """Bar grid + downbeat markers, derived from the beat grid.
+
+    ``confidence`` reflects how trustworthy the downbeat phase is:
+      - high (>=0.5) when the grid is kick-anchored
+      - 0.0 otherwise (fallback: bars still produced, but downbeat phase is
+        ambiguous off-by-one-beat — consumers should treat the first bar as
+        a guess, not a fact).
+    """
+
+    bars: list[Bar]
+    confidence: float  # 0..1
+
+    @property
+    def bar_count(self) -> int:
+        return len(self.bars)
+
+    def __len__(self) -> int:
+        return len(self.bars)
+
+    def __iter__(self):
+        return iter(self.bars)
+
+    @property
+    def downbeats(self) -> list[Bar]:
+        return self.bars
+
+    def to_dict(self, fps: float | None = None) -> dict[str, Any]:
+        d: dict[str, Any] = {
+            "barCount": self.bar_count,
+            "downbeatConfidence": round(self.confidence, 3),
+            "bars": [b.to_dict(fps) for b in self.bars],
+        }
+        downbeats = [
+            {"time": round(b.downbeat_time, 4),
+             "frame": b.downbeat_frame if b.downbeat_frame is not None else (
+                 time_to_frame(b.downbeat_time, fps) if fps else None)}
+            for b in self.bars
+        ]
+        if all(x["frame"] is not None for x in downbeats):
+            d["downbeats"] = downbeats
+        return d
+
+
+@dataclass
 class AnalysisResult:
     """Complete analysis of one audio file."""
 
@@ -148,6 +238,7 @@ class AnalysisResult:
     bpm_confidence: float  # 0..1 autocorrelation peak sharpness
     beat_grid: list[Beat] = field(default_factory=list)  # quantized, uniform spacing
     onsets: list[Beat] = field(default_factory=list)  # raw transients / hits
+    bars: Bars | None = None
     sections: list[Section] = field(default_factory=list)
     bands: BandData | None = None
     centroid: list[float] = field(default_factory=list)  # per analysis frame, Hz
@@ -192,6 +283,8 @@ class AnalysisResult:
             "onsets": [o.to_dict(f) for o in self.onsets],
             "sections": [s.to_dict(f) for s in self.sections],
         }
+        if self.bars is not None:
+            d.update(self.bars.to_dict(f))
         if f:
             d["fps"] = f
             d["durationInFrames"] = time_to_frame(self.duration, f)

@@ -15,6 +15,10 @@ def test_report_contains_canvas_and_data(click_120):
     assert "window.__SPECTRUMALYZER__" in html
     assert '"bpm"' in html
     assert '"beats"' in html
+    # bars & downbeats layer
+    assert '"bars"' in html
+    assert '"downbeats"' in html
+    assert 'id="bars"' in html  # bar strip canvas
 
 
 def test_report_embeds_valid_json(click_120):
@@ -26,6 +30,8 @@ def test_report_embeds_valid_json(click_120):
     data = json.loads(payload)
     assert data["bpm"] > 0
     assert len(data["beats"]) >= 10
+    assert len(data["bars"]) > 0
+    assert "downbeatConfidence" in data
 
 
 def test_report_band_names(click_120):

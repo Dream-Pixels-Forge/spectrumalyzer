@@ -21,7 +21,7 @@ from spectrumalyzer.analysis.spectrum import (
     compute_stft,
     spectral_flux,
 )
-from spectrumalyzer.model import Beat
+from spectrumalyzer.model import Bar, Bars, Beat, time_to_frame
 
 MIN_ONSET_DISTANCE_S = 0.1
 MIN_TEMPO_CONFIDENCE = 0.3  # below this, the track has no trustworthy pulse
@@ -211,6 +211,56 @@ def _phase_from_envelope(env: np.ndarray, period_frames: float) -> tuple[float, 
         if score > best_score:
             best_score, best_offset = score, float(offset)
     return best_offset, best_score
+
+
+def detect_bars(
+    beat_grid: list[Beat],
+    bpm: float,
+    confidence: float,
+    fps: float | None = None,
+    beats_per_bar: int = 4,
+) -> Bars:
+    """Group the beat grid into bars of ``beats_per_bar`` beats (4/4 by default).
+
+    The downbeat of each bar is the first beat of the group. ``confidence``
+    is the grid's tempo confidence — if it is below 0.3 the downbeat phase is
+    ambiguous (off-by-one-beat risk) and the result's confidence is 0.0 so
+    consumers can treat the first bar as a guess.
+    """
+    if not beat_grid:
+        return Bars(bars=[], confidence=0.0)
+
+    if confidence < MIN_TEMPO_CONFIDENCE:
+        bar_confidence = 0.0
+    else:
+        # scale up: a confident grid gives confident bars
+        bar_confidence = min(1.0, confidence)
+
+    bars: list[Bar] = []
+    beat_period = 60.0 / bpm if bpm > 0 else 0.0
+    for i in range(0, len(beat_grid), beats_per_bar):
+        group = beat_grid[i:i + beats_per_bar]
+        downbeat = group[0]
+        start_t = downbeat.time
+        end_t = start_t + beats_per_bar * beat_period
+        idx = len(bars)
+        f = None
+        ef = None
+        if fps:
+            f = time_to_frame(start_t, fps)
+            ef = time_to_frame(end_t, fps)
+        bars.append(Bar(
+            index=idx,
+            beat_indices=list(range(i, i + len(group))),
+            downbeat_time=start_t,
+            start_time=start_t,
+            end_time=end_t,
+            downbeat_frame=f,
+            frame=f,
+            end_frame=ef,
+        ))
+
+    return Bars(bars=bars, confidence=round(bar_confidence, 3))
 
 
 def detect_beats(

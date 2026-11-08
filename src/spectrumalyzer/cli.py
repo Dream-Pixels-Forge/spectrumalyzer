@@ -252,7 +252,8 @@ def cmd_analyze(args: argparse.Namespace) -> int:
     _log(
         args.quiet,
         f"BPM {result.bpm:.1f} (confidence {result.bpm_confidence:.2f}) · "
-        f"{result.beat_count} beats · {len(result.onsets)} onsets · "
+        f"{result.beat_count} beats · {len(result.bars.bars) if result.bars else 0} bars · "
+        f"{len(result.onsets)} onsets · "
         f"{len(result.sections)} sections · {result.duration:.1f}s",
     )
 
@@ -305,6 +306,12 @@ def cmd_analyze(args: argparse.Namespace) -> int:
         for i, b in enumerate(result.beat_grid[:8]):
             frame = f"  [frame {b.frame}]" if b.frame is not None else ""
             print(f"  {i + 1}. {b.time:7.3f}s  strength {b.strength:.2f}{frame}")
+        if result.bars and result.bars.bars:
+            print()
+            print("Bars (first 4):")
+            for bar in result.bars.bars[:4]:
+                f = f"  [frame {bar.frame}]" if bar.frame is not None else ""
+                print(f"  BAR {bar.index + 1}: {bar.downbeat_time:7.3f}s → {bar.end_time:7.3f}s{f}")
         print()
         print(f"Files written: {len(written)}")
     return 0

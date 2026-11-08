@@ -47,6 +47,19 @@ def render(result: AnalysisResult) -> str:
             f'        <marker start="{_rational(frame, fps)}" '
             f'duration="{_rational(1, fps)}" value="section: {escape(s.label)}"/>'
         )
+    if result.bars is not None:
+        for bar in result.bars:
+            frame = bar.frame if bar.frame is not None else time_to_frame(bar.downbeat_time, fps)
+            markers.append(
+                f'        <marker start="{_rational(frame, fps)}" '
+                f'duration="{_rational(1, fps)}" value="BAR {bar.index + 1}"/>'
+            )
+        for bar in result.bars:
+            frame = bar.downbeat_frame if bar.downbeat_frame is not None else time_to_frame(bar.downbeat_time, fps)
+            markers.append(
+                f'        <marker start="{_rational(frame, fps)}" '
+                f'duration="{_rational(1, fps)}" value="BAR {bar.index + 1} ↓"/>'
+            )
     marker_block = "\n".join(markers)
 
     return f"""<?xml version="1.0" encoding="UTF-8"?>

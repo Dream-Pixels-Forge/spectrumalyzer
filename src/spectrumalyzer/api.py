@@ -7,7 +7,7 @@ import math
 import numpy as np
 
 from spectrumalyzer._version import __version__
-from spectrumalyzer.analysis.beats import detect_beats
+from spectrumalyzer.analysis.beats import detect_bars, detect_beats
 from spectrumalyzer.analysis.features import loudness_envelope, waveform_peaks
 from spectrumalyzer.analysis.spectrum import compute_bands, spectral_centroid
 from spectrumalyzer.analysis.structure import detect_sections
@@ -78,4 +78,10 @@ def analyze(
     )
     if sections:
         result.sections = detect_sections(pcm, sr, duration)
+    result.bars = detect_bars(
+        beat_grid=result.beat_grid,
+        bpm=result.bpm,
+        confidence=result.bpm_confidence,
+        fps=fps,
+    )
     return result

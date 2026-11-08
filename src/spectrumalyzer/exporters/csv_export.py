@@ -33,4 +33,15 @@ def render(result: AnalysisResult) -> str:
         writer.writerow([i, "section", f"{s.start:.4f}", time_to_frame(s.start, fps),
                          f"section: {s.label}", f"{s.energy:.3f}", round(result.bpm, 2)])
         i += 1
+    if result.bars is not None:
+        for bar in result.bars:
+            f = bar.frame if bar.frame is not None else time_to_frame(bar.downbeat_time, fps)
+            writer.writerow([i, "bar", f"{bar.downbeat_time:.4f}", f,
+                             f"bar {bar.index + 1}", f"{bar.beat_count}", round(result.bpm, 2)])
+            i += 1
+        for bar in result.bars:
+            f = bar.downbeat_frame if bar.downbeat_frame is not None else time_to_frame(bar.downbeat_time, fps)
+            writer.writerow([i, "downbeat", f"{bar.downbeat_time:.4f}", f,
+                             f"BAR {bar.index + 1} ↓", f"{bar.beat_count}", round(result.bpm, 2)])
+            i += 1
     return buf.getvalue()

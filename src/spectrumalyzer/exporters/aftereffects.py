@@ -28,6 +28,13 @@ def render(result: AnalysisResult) -> str:
             f'    addMarker({s.start:.4f}, "section: {s.label} (energy {s.energy:.2f})");'
         )
 
+    bar_lines: list[str] = []
+    downbeat_lines: list[str] = []
+    if result.bars is not None:
+        for bar in result.bars:
+            bar_lines.append(f'addMarker({bar.downbeat_time:.4f}, "BAR {bar.index + 1}");')
+            downbeat_lines.append(f'addMarker({bar.downbeat_time:.4f}, "BAR {bar.index + 1} \\u2193");')
+
     jsx = f"""// spectrumalyzer markers for After Effects
 // Generated from: {result.path}
 // {len(result.beat_grid)} beats @ {result.bpm} BPM, {len(result.onsets)} onsets, fps {fps}
@@ -63,8 +70,23 @@ def render(result: AnalysisResult) -> str:
 {chr(10).join(section_lines)}
     ];
 
+    var bars = [
+{chr(10).join(bar_lines)}
+    ];
+    for (var k = 0; k < bars.length; k++) {{
+        eval(bars[k]);
+    }}
+
+    var downbeats = [
+{chr(10).join(downbeat_lines)}
+    ];
+    for (var m = 0; m < downbeats.length; m++) {{
+        eval(downbeats[m]);
+    }}
+
     app.endUndoGroup();
     alert("Added " + (beats.length + onsets.length) + " beat/hit markers" +
+          ", " + bars.length + " bar markers" +
           " and " + sections.length + " section markers to \\"" + comp.name + "\\".");
 }})();
 """

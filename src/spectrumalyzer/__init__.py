@@ -14,17 +14,21 @@ CLI:
 """
 
 from spectrumalyzer._version import __version__
+from spectrumalyzer.analysis.beats import detect_bars
 from spectrumalyzer.api import analyze
-from spectrumalyzer.model import AnalysisResult, Beat, Section
+from spectrumalyzer.model import AnalysisResult, Bar, Bars, Beat, Section
 from spectrumalyzer.trimmer import TrimSelection, select_trim_window, trim, trim_audio
 
 __all__ = [
     "AnalysisResult",
+    "Bar",
+    "Bars",
     "Beat",
     "Section",
     "TrimSelection",
     "__version__",
     "analyze",
+    "detect_bars",
     "select_trim_window",
     "trim",
     "trim_audio",
