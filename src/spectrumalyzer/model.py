@@ -60,6 +60,40 @@ class Beat:
 
 
 @dataclass
+class KeyResult:
+    """Musical key of the track (or a section).
+
+    ``root`` is a pitch class 0-11 (0=C). ``key`` is a human string like
+    "A minor" or "unknown". ``confidence`` is the Krumhansl-Schmuckler
+    goodness-of-fit sharpened by an onset/harmonic salience gate — 0.0 when
+    the material has no trustworthy tonality (the honesty gate).
+
+    ``camelot`` is the DJ/mixing wheel position (e.g. "8A"); ``palette`` is
+    a deterministic creative color suggestion derived from that position.
+    Both are None / absent when the key is unknown.
+    """
+
+    root: int = -1  # pitch class 0..11, -1 = unknown
+    key: str = "unknown"
+    confidence: float = 0.0
+    camelot: str | None = None
+    palette: dict[str, Any] | None = None
+    chroma: list[float] = field(default_factory=list)  # 12-dim, for inspection
+
+    def to_dict(self) -> dict[str, Any]:
+        d: dict[str, Any] = {
+            "key": self.key,
+            "keyConfidence": round(self.confidence, 3),
+            "chroma": [round(c, 4) for c in self.chroma],
+        }
+        if self.camelot is not None:
+            d["camelot"] = self.camelot
+        if self.palette is not None:
+            d["palette"] = self.palette
+        return d
+
+
+@dataclass
 class Bar:
     """A measure (4 beats) on the bar grid.
 
@@ -239,6 +273,7 @@ class AnalysisResult:
     beat_grid: list[Beat] = field(default_factory=list)  # quantized, uniform spacing
     onsets: list[Beat] = field(default_factory=list)  # raw transients / hits
     bars: Bars | None = None
+    key: KeyResult | None = None
     sections: list[Section] = field(default_factory=list)
     bands: BandData | None = None
     centroid: list[float] = field(default_factory=list)  # per analysis frame, Hz
@@ -285,6 +320,8 @@ class AnalysisResult:
         }
         if self.bars is not None:
             d.update(self.bars.to_dict(f))
+        if self.key is not None:
+            d.update(self.key.to_dict())
         if f:
             d["fps"] = f
             d["durationInFrames"] = time_to_frame(self.duration, f)

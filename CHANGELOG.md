@@ -4,6 +4,58 @@ All notable changes to spectrumalyzer are documented here.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 versioning follows [Semantic Versioning](https://semver.org/).
 
+## [0.8.0] — 2026-11-08
+
+### Added
+- **Musical key detection** (Krumhansl-Schmuckler over a numpy chromagram —
+  no ML, no new dependencies):
+  - `detect_key(pcm, sr)` in `analysis/harmony.py` — chroma extraction with
+    harmonic-range weighting, 24 K-S key templates, goodness-of-fit
+    confidence, and a salience gate that returns `key="unknown"` (confidence
+    0) for pulseless/ambient material instead of inventing harmony.
+  - `KeyResult` model: `root` (pitch class), `key` (e.g. "A minor"),
+    `confidence`, `chroma` (12-dim), `camelot`, `palette`.
+  - **Creative mapping**: `key_to_camelot()` (standard DJ Camelot wheel,
+    all 24 keys) and `palette_for_key()` — a deterministic color-grade
+    suggestion (mood + 3 hex anchors + a label) derived from the Camelot
+    slot (minor = cool, major = warm; wheel position = energy/saturation).
+  - Wired into `analyze(key=True)` → `AnalysisResult.key`; exposed at the
+    package root (`detect_key`, `KeyResult`).
+  - All 6 exporters carry key data (JSON nested, flat keys in
+    remotion/hyperframes, a marker comment in AE/FCPXML, a `key` row in CSV).
+  - CLI `analyze --no-key` opt-out + key/palette in the summary; HTML report
+    gains a Key stat; MCP `analyze_audio` payload includes key; the
+    semantic layer (`describe`) now mentions key + palette for richer search.
+- 11 new tests (132 total green, ruff clean): A-minor / C-major chord
+  fixtures → correct root, noise → "unknown" (confidence 0), Camelot table
+  spot-checks, palette shape, exporter + MCP key payloads.
+
+## [0.7.0] — 2026-11-08
+
+### Added
+- **Bars & downbeats** — measure-level structure on top of the beat grid:
+  - `detect_bars()` — groups the beat grid into 4/4 bars; downbeat = first
+    beat of each bar. Confidence flag (0.0 when the kick anchor is weak,
+    meaning the downbeat phase is off-by-one-beat ambiguous).
+  - `AnalysisResult.bars: Bars | None` with `Bar` model (index,
+    beat_indices, downbeat_time/start_time/end_time, frame/end_frame/
+    downbeat_frame) — frame math mirrors the beat-grid convention.
+  - JSON export: `bars` (time + frames), `downbeats`, `barCount`,
+    `downbeatConfidence`.
+  - Remotion: `barsInFrames`, `downbeatsInFrames`, `barPeriodInFrames`,
+    `barCount`, `downbeatConfidence` in the data; `useBarIndex()`,
+    `useBarProgress()`, `useIsOnBar()` in the `useBeats.ts` hook.
+  - HyperFrames: `bar` + `downbeat` timeline events.
+  - After Effects: `BAR N` + `BAR N ↓` comp markers.
+  - CSV: `bar` and `downbeat` row types.
+  - FCPXML: `BAR N` + `BAR N ↓` markers.
+  - HTML report: bar strip panel with downbeat ticks.
+- MCP `analyze_audio` lean payload now includes `bars`/`downbeats`
+  (cheap, always-on).
+- CLI `analyze` prints the bar count and first bars.
+- 13 new tests (bar grouping, confidence fallback, per-exporter bar
+  presence + frame math, end-to-end on a synthetic 120 BPM kick+hat track).
+
 ## [0.2.0] — 2026-10-11
 
 ### Added
@@ -119,32 +171,6 @@ versioning follows [Semantic Versioning](https://semver.org/).
 - README skill-install command: the skills CLI takes `owner/repo/subpath`,
   not GitHub's `tree/<branch>/` URL syntax (verified live — found + installed
   the skill to 13 agent platforms).
-
-## [0.7.0] — 2026-11-08
-
-### Added
-- **Bars & downbeats** — measure-level structure on top of the beat grid:
-  - `detect_bars()` — groups the beat grid into 4/4 bars; downbeat = first
-    beat of each bar. Confidence flag (0.0 when the kick anchor is weak,
-    meaning the downbeat phase is off-by-one-beat ambiguous).
-  - `AnalysisResult.bars: Bars | None` with `Bar` model (index,
-    beat_indices, downbeat_time/start_time/end_time, frame/end_frame/
-    downbeat_frame) — frame math mirrors the beat-grid convention.
-  - JSON export: `bars` (time + frames), `downbeats`, `barCount`,
-    `downbeatConfidence`.
-  - Remotion: `barsInFrames`, `downbeatsInFrames`, `barPeriodInFrames`,
-    `barCount`, `downbeatConfidence` in the data; `useBarIndex()`,
-    `useBarProgress()`, `useIsOnBar()` in the `useBeats.ts` hook.
-  - HyperFrames: `bar` + `downbeat` timeline events.
-  - After Effects: `BAR N` + `BAR N ↓` comp markers.
-  - CSV: `bar` and `downbeat` row types.
-  - FCPXML: `BAR N` + `BAR N ↓` markers.
-  - HTML report: bar strip panel with downbeat ticks.
-- MCP `analyze_audio` lean payload now includes `bars`/`downbeats`
-  (cheap, always-on).
-- CLI `analyze` prints the bar count and first bars.
-- 13 new tests (bar grouping, confidence fallback, per-exporter bar
-  presence + frame math, end-to-end on a synthetic 120 BPM kick+hat track).
 
 ## [0.6.0] — 2026-11-02
 

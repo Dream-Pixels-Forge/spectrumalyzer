@@ -47,6 +47,12 @@ def render(result: AnalysisResult) -> str:
             f'        <marker start="{_rational(frame, fps)}" '
             f'duration="{_rational(1, fps)}" value="section: {escape(s.label)}"/>'
         )
+    key_marker = ""
+    if result.key is not None and result.key.key != "unknown":
+        key_marker = (
+            f'        <marker start="0/1s" duration="{_rational(1, fps)}" '
+            f'value="key: {escape(result.key.key)} (Camelot {escape(result.key.camelot)})"/>'
+        )
     if result.bars is not None:
         for bar in result.bars:
             frame = bar.frame if bar.frame is not None else time_to_frame(bar.downbeat_time, fps)
@@ -61,6 +67,8 @@ def render(result: AnalysisResult) -> str:
                 f'duration="{_rational(1, fps)}" value="BAR {bar.index + 1} ↓"/>'
             )
     marker_block = "\n".join(markers)
+    if key_marker:
+        marker_block = key_marker + "\n" + marker_block
 
     return f"""<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE fcpxml>

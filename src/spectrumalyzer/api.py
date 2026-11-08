@@ -9,6 +9,7 @@ import numpy as np
 from spectrumalyzer._version import __version__
 from spectrumalyzer.analysis.beats import detect_bars, detect_beats
 from spectrumalyzer.analysis.features import loudness_envelope, waveform_peaks
+from spectrumalyzer.analysis.harmony import detect_key
 from spectrumalyzer.analysis.spectrum import compute_bands, spectral_centroid
 from spectrumalyzer.analysis.structure import detect_sections
 from spectrumalyzer.audio import DEFAULT_SAMPLE_RATE, load
@@ -20,6 +21,7 @@ def analyze(
     fps: float | None = None,
     bands: bool = True,
     sections: bool = True,
+    key: bool = True,
     min_bpm: float = 60.0,
     max_bpm: float = 200.0,
     sample_rate: int = DEFAULT_SAMPLE_RATE,
@@ -36,6 +38,8 @@ def analyze(
         min_bpm / max_bpm: tempo search range hints.
         sample_rate: internal decode rate (44100 default).
         waveform_buckets: resolution of the visualization waveform.
+        key: include musical key detection (Krumhansl-Schmuckler over the
+             chromagram) with Camelot + palette suggestion.
     """
     pcm, duration, sr = load(path, sample_rate)
     if len(pcm) == 0:
@@ -84,4 +88,6 @@ def analyze(
         confidence=result.bpm_confidence,
         fps=fps,
     )
+    if key:
+        result.key = detect_key(pcm, sr)
     return result

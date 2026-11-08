@@ -30,6 +30,14 @@ def render(result: AnalysisResult) -> str:
 
     bar_lines: list[str] = []
     downbeat_lines: list[str] = []
+    key_comment = ""
+    if result.key is not None and result.key.key != "unknown":
+        pal = result.key.palette or {}
+        key_comment = (
+            f'// Detected key: {result.key.key} '
+            f'(Camelot {result.key.camelot}, confidence {result.key.confidence:.2f}). '
+            f'Creative palette: {pal.get("label")} {pal.get("hexes")}'
+        )
     if result.bars is not None:
         for bar in result.bars:
             bar_lines.append(f'addMarker({bar.downbeat_time:.4f}, "BAR {bar.index + 1}");')
@@ -38,6 +46,7 @@ def render(result: AnalysisResult) -> str:
     jsx = f"""// spectrumalyzer markers for After Effects
 // Generated from: {result.path}
 // {len(result.beat_grid)} beats @ {result.bpm} BPM, {len(result.onsets)} onsets, fps {fps}
+{key_comment}
 //
 // Usage: File > Scripts > Run Script File... (with your composition open,
 // or select a comp in the project panel).

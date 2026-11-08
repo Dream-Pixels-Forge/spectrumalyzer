@@ -58,8 +58,14 @@
       Remotion helpers, BAR markers in AE/FCPXML/CSV, bar events in
       HyperFrames, bar strip in the HTML report. Confidence flag for
       weak-kick tracks.
-- [ ] **Musical key detection** (chroma profile → key) — creative mapping:
-      Camelot wheel → palette/color-grade suggestion.
+- [x] **Musical key detection** (chroma profile → key) — creative mapping:
+      Camelot wheel → palette/color-grade suggestion. **Shipped in v0.8.0**:
+      `detect_key()` (Krumhansl-Schmuckler over a numpy chromagram, no ML,
+      no new deps), `KeyResult` (root/key/confidence/chroma/camelot/palette),
+      `key_to_camelot()` (24-key Camelot table), `palette_for_key()`
+      (deterministic color-grade from the Camelot slot). Key + Camelot +
+      palette in all 6 exporters, JSON, MCP, CLI summary, HTML report;
+      "unknown" (confidence 0) on pulseless/ambient material.
 - [ ] **Beat-strength quantiles → "impact tiers"** — pre-label beats as
       normal/accent/downbeat-adjacent for automatic edit emphasis.
 

@@ -33,6 +33,15 @@ def render(result: AnalysisResult) -> str:
         writer.writerow([i, "section", f"{s.start:.4f}", time_to_frame(s.start, fps),
                          f"section: {s.label}", f"{s.energy:.3f}", round(result.bpm, 2)])
         i += 1
+    if result.key is not None and result.key.key != "unknown":
+        pal = result.key.palette or {}
+        key_label = (
+            f"key: {result.key.key} (Camelot {result.key.camelot}) "
+            f"{pal.get('label', '')} {' '.join(pal.get('hexes', []))}"
+        )
+        writer.writerow([i, "key", "0.0000", 0, key_label,
+                         f"{result.key.confidence:.3f}", round(result.bpm, 2)])
+        i += 1
     if result.bars is not None:
         for bar in result.bars:
             f = bar.frame if bar.frame is not None else time_to_frame(bar.downbeat_time, fps)

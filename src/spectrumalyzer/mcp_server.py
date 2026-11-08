@@ -80,12 +80,15 @@ def create_server() -> FastMCP:
         min_bpm: float = 60.0,
         max_bpm: float = 200.0,
     ) -> str:
-        """Analyze an audio file: BPM, beat grid, onsets, sections.
+        """Analyze an audio file: BPM, beat grid, bars, onsets, sections, key.
 
-        Returns bpm, bpmConfidence, beats (time/frame/strength), onsets and
-        sections. Set fps (24/25/30/60) for frame numbers. Set
-        include_analysis=true to also receive the full frequency-band matrix,
-        spectral centroid and loudness envelope (large payload).
+        Returns bpm, bpmConfidence, beats (time/frame/strength), bars,
+        downbeats, onsets, sections, and key (Krumhansl-Schmuckler key with
+        Camelot position + a deterministic palette suggestion; "unknown" with
+        confidence 0 when the material has no trustworthy tonality).
+        Set fps (24/25/30/60) for frame numbers. Set include_analysis=true to
+        also receive the full frequency-band matrix, spectral centroid and
+        loudness envelope (large payload).
         """
         p = Path(path)
         if not p.exists():

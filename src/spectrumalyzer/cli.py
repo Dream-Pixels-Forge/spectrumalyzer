@@ -111,6 +111,9 @@ def build_parser() -> argparse.ArgumentParser:
         "--no-sections", action="store_true", help="Skip song-structure segmentation"
     )
     p_analyze.add_argument(
+        "--no-key", action="store_true", help="Skip musical key detection (Krumhansl-Schmuckler)"
+    )
+    p_analyze.add_argument(
         "--stdout", action="store_true", help="Write JSON of the first format to stdout"
     )
     p_analyze.add_argument(
@@ -246,6 +249,7 @@ def cmd_analyze(args: argparse.Namespace) -> int:
         fps=args.fps,
         bands=not args.no_bands,
         sections=not args.no_sections,
+        key=not args.no_key,
         min_bpm=args.min_bpm,
         max_bpm=args.max_bpm,
     )
@@ -254,7 +258,8 @@ def cmd_analyze(args: argparse.Namespace) -> int:
         f"BPM {result.bpm:.1f} (confidence {result.bpm_confidence:.2f}) · "
         f"{result.beat_count} beats · {len(result.bars.bars) if result.bars else 0} bars · "
         f"{len(result.onsets)} onsets · "
-        f"{len(result.sections)} sections · {result.duration:.1f}s",
+        f"{len(result.sections)} sections · "
+        f"key {result.key.key if result.key else '—'} · {result.duration:.1f}s",
     )
 
     extra_payload: dict = {}
@@ -312,6 +317,13 @@ def cmd_analyze(args: argparse.Namespace) -> int:
             for bar in result.bars.bars[:4]:
                 f = f"  [frame {bar.frame}]" if bar.frame is not None else ""
                 print(f"  BAR {bar.index + 1}: {bar.downbeat_time:7.3f}s → {bar.end_time:7.3f}s{f}")
+        if result.key is not None and result.key.key != "unknown":
+            print()
+            print(f"Key: {result.key.key} (Camelot {result.key.camelot}, "
+                  f"confidence {result.key.confidence:.2f})")
+            if result.key.palette:
+                print(f"  Palette: {result.key.palette.get('label')}  "
+                      f"{' '.join(result.key.palette.get('hexes', []))}")
         print()
         print(f"Files written: {len(written)}")
     return 0

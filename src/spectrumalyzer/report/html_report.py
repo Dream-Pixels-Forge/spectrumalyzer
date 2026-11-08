@@ -62,6 +62,7 @@ _TEMPLATE = """<!DOCTYPE html>
   <div class="stats">
     <div class="stat"><div class="v" id="s-bpm">—</div><div class="k">BPM</div></div>
     <div class="stat"><div class="v" id="s-conf">—</div><div class="k">Confidence</div></div>
+    <div class="stat"><div class="v" id="s-key">—</div><div class="k">Key</div></div>
     <div class="stat"><div class="v" id="s-beats">—</div><div class="k">Beats</div></div>
     <div class="stat"><div class="v" id="s-hits">—</div><div class="k">Onsets</div></div>
     <div class="stat"><div class="v" id="s-dur">—</div><div class="k">Duration</div></div>
@@ -111,6 +112,9 @@ window.__SPECTRUMALYZER__ = __PAYLOAD__;
 
   document.getElementById('s-bpm').textContent = fmt(D.bpm, 1);
   document.getElementById('s-conf').textContent = fmt((D.bpmConfidence || 0) * 100, 0) + '%';
+  const keyObj = D.key && D.key.key !== 'unknown' ? D.key : null;
+  document.getElementById('s-key').textContent = keyObj
+    ? keyObj.key + ' (' + keyObj.camelot + ')' : '—';
   document.getElementById('s-beats').textContent = D.beatCount;
   document.getElementById('s-hits').textContent = D.onsets.length;
   document.getElementById('s-dur').textContent = fmt(D.duration, 1) + 's';

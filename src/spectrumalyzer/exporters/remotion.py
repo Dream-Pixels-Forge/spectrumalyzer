@@ -50,6 +50,11 @@ def render(result: AnalysisResult) -> str:
         data["downbeatsInFrames"] = [b.downbeat_frame if b.downbeat_frame is not None else time_to_frame(b.downbeat_time, fps) for b in bars]
         if result.bpm:
             data["barPeriodInFrames"] = round(60.0 / result.bpm * 4 * fps)
+    if result.key is not None and result.key.key != "unknown":
+        data["key"] = result.key.key
+        data["keyConfidence"] = round(result.key.confidence, 3)
+        data["camelot"] = result.key.camelot
+        data["palette"] = result.key.palette
     rows = result.band_rows_at_fps()
     if rows is not None:
         data["bandsByFrame"] = rows

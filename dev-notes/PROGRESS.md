@@ -5,7 +5,25 @@
 - Branch: `main`
 - Started: 2026-10-11
 - Current Phase: 3 (Engineer)
-- Status: **shipped** — v0.7.0 bars & downbeats, live on PyPI (2026-11-08)
+- Status: **shipped** — v0.8.0 key detection, live on PyPI (2026-11-08)
+
+## v0.8.0 Key Detection (2026-11-08)
+- [x] `analysis/harmony.py` — chromagram (numpy STFT + log-spaced pitch-class
+      binned, harmonic-band weighting) + 24 Krumhansl-Schmuckler templates
+- [x] `detect_key(pcm, sr) -> KeyResult` — best-fit key, 0..1 confidence
+      (K-S gap normalized), salience gate returns "unknown"/0 on flat chroma
+- [x] `key_to_camelot(pc, mode)` — full 24-key Camelot table
+- [x] `palette_for_key(key, camelot)` — deterministic color-grade suggestion
+      (mood + 3 hex + label) from Camelot slot
+- [x] `KeyResult` model (root, key, confidence, chroma, camelot, palette)
+- [x] `analyze(key=True)` default → `AnalysisResult.key`
+- [x] JSON nested under `key`, flat keys in remotion/hyperframes, marker
+      comment in AE/FCPXML, `key` row in CSV
+- [x] CLI `--no-key` opt-out + key/palette in summary + Key stat in report
+- [x] MCP `analyze_audio` payload includes key; `describe()` mentions
+      key + palette (richer semantic search)
+- [x] 10 new tests (132 total green, ruff clean)
+- [ ] Release v0.8.0 (version bump + tag + PyPI, on user's go)
 
 ## v0.7.0 Bars & Downbeats (2026-11-08)
 - [x] `detect_bars()` in `analysis/beats.py` — 4/4 grouping on the beat grid,

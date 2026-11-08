@@ -95,6 +95,14 @@ def describe(result) -> dict[str, str]:
     summary = ", ".join(summary_parts) + "."
 
     description_bits = [f"Structure: {len(result.sections) or 1} section(s) — {section_labels}."]
+    if result.key is not None and result.key.key != "unknown":
+        palette = result.key.palette or {}
+        desc_key = (
+            f"Key: {result.key.key} "
+            f"(Camelot {result.key.camelot}, confidence {result.key.confidence:.2f}). "
+            f"Creative color grade: {palette.get('label', 'unknown')}."
+        )
+        description_bits.append(desc_key)
     if peak_sections:
         p = peak_sections[0]
         description_bits.append(

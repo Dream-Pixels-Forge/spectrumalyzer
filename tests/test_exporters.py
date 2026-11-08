@@ -53,7 +53,115 @@ def result() -> AnalysisResult:
     return r
 
 
-def test_all_formats_registered():
+def test_json_key_export():
+    import wave
+
+    import numpy as np
+
+    from spectrumalyzer.api import analyze
+    from spectrumalyzer.exporters import export
+
+    def _chord_pcm(freqs_hz, n_chords=24, sustain_s=0.5, sample_rate=44100):
+        sr = sample_rate
+        per = int(sustain_s * sr)
+        n = per * n_chords
+        audio = np.zeros(n)
+        t = np.arange(per) / sr
+        for f in freqs_hz:
+            partials = [f, 2.0 * f, 3.0 * f]
+            amps = [0.5, 0.2, 0.1]
+            sig = sum(a * np.sin(2 * np.pi * p * t) for a, p in zip(amps, partials))
+            for c in range(n_chords):
+                i = c * per
+                env = np.ones(per)
+                fade = int(0.02 * sr)
+                env[:fade] = np.linspace(0, 1, fade)
+                env[-fade:] = np.linspace(1, 0, fade)
+                audio[i:i + per] += sig * env * 0.6
+        return audio.astype(np.float32)
+
+    import os
+    import tempfile
+    with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tf:
+        p = tf.name
+    with wave.open(p, "wb") as w:
+        w.setnchannels(1); w.setsampwidth(2); w.setframerate(44100)
+        w.writeframes((np.clip(_chord_pcm([220.0, 261.63, 329.63]), -1, 1) * 32767).astype(np.int16).tobytes())
+    r = analyze(p, fps=30)
+    os.unlink(p)
+    data = json.loads(export(r, "json"))
+    assert data["key"] != "unknown"
+    assert "keyConfidence" in data
+    assert data["camelot"] is not None
+    assert "palette" in data
+
+
+def test_json_key_absent_when_unknown():
+    import os
+    import tempfile
+    import wave
+
+    import numpy as np
+
+    from spectrumalyzer.api import analyze
+    from spectrumalyzer.exporters import export
+    with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tf:
+        p = tf.name
+    sr = 44100
+    pcm = (np.random.default_rng(9).standard_normal(int(12 * sr)) * 0.05).astype(np.float32)
+    with wave.open(p, "wb") as w:
+        w.setnchannels(1); w.setsampwidth(2); w.setframerate(sr)
+        w.writeframes((np.clip(pcm, -1, 1) * 32767).astype(np.int16).tobytes())
+    r = analyze(p, fps=30)
+    os.unlink(p)
+    data = json.loads(export(r, "json"))
+    assert data["key"] == "unknown"
+    assert data["keyConfidence"] == 0.0
+    assert "camelot" not in data
+
+
+def test_mcp_lean_payload_has_key():
+    import asyncio
+    import wave
+
+    import numpy as np
+
+    from spectrumalyzer.mcp_server import create_server
+
+    def _chord_pcm(freqs_hz, n_chords=24, sustain_s=0.5, sample_rate=44100):
+        sr = sample_rate
+        per = int(sustain_s * sr)
+        n = per * n_chords
+        audio = np.zeros(n)
+        t = np.arange(per) / sr
+        for f in freqs_hz:
+            partials = [f, 2.0 * f, 3.0 * f]
+            amps = [0.5, 0.2, 0.1]
+            sig = sum(a * np.sin(2 * np.pi * p * t) for a, p in zip(amps, partials))
+            for c in range(n_chords):
+                i = c * per
+                env = np.ones(per)
+                fade = int(0.02 * sr)
+                env[:fade] = np.linspace(0, 1, fade)
+                env[-fade:] = np.linspace(1, 0, fade)
+                audio[i:i + per] += sig * env * 0.6
+        return audio.astype(np.float32)
+
+    import os
+    import tempfile
+    with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tf:
+        p = tf.name
+    with wave.open(p, "wb") as w:
+        w.setnchannels(1); w.setsampwidth(2); w.setframerate(44100)
+        w.writeframes((np.clip(_chord_pcm([220.0, 261.63, 329.63]), -1, 1) * 32767).astype(np.int16).tobytes())
+    server = create_server()
+    result, _meta = asyncio.run(server.call_tool("analyze_audio", {"path": p, "fps": 30}))
+    os.unlink(p)
+    data = json.loads(result[0].text)
+    assert "key" in data
+    assert data["key"] != "unknown"
+    assert "camelot" in data
+    assert "palette" in data
     expected = {"json", "remotion", "hyperframes", "ae", "csv", "fcpxml"}
     assert expected == set(FORMATS.keys())
 
