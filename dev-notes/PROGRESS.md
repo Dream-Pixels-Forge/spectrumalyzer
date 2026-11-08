@@ -5,7 +5,7 @@
 - Branch: `main`
 - Started: 2026-10-11
 - Current Phase: 3 (Engineer)
-- Status: **shipped** — v0.7.0 bars & downbeats (2026-11-08)
+- Status: **shipped** — v0.7.0 bars & downbeats, live on PyPI (2026-11-08)
 
 ## v0.7.0 Bars & Downbeats (2026-11-08)
 - [x] `detect_bars()` in `analysis/beats.py` — 4/4 grouping on the beat grid,
@@ -55,7 +55,9 @@
 - [x] 13 new tests (122 total green, ruff clean)
 - [x] End-to-end verified on synthetic 120 BPM kick+hat track: bars land on
       accent downbeats, all 6 formats emit bar data
-- [ ] Release v0.7.0 (version bump + tag + PyPI, on user's go)
+- [x] Release v0.7.0 (tag v0.7.0 → trusted-publishing workflow → PyPI live
+      2026-11-08; three-way check: pyproject == tag == PyPI == 0.7.0, wheel
+      artifact verified)
 
 ## Shipped Milestones
 - **v0.2.0** — "Creative Toolkit": real STFT/spectral-flux engine, 6 exporters, HTML report,

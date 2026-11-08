@@ -45,11 +45,11 @@ Add bar-level structure to the analysis engine and every exporter:
 7. **Release**: version bump, tag v0.7.0, PyPI, three-way verification gate
 
 ## Verification gates
-- [ ] `pytest` all green locally (venv per dev-notes env note)
-- [ ] `ruff` clean
-- [ ] 6-format end-to-end on a real/synthetic track: bar keys in every output
-- [ ] HTML report shows the bar strip
-- [ ] Three-way version check: pyproject == git tag == PyPI
+- [x] `pytest` all green locally (122 passed; deps via pip --target .pydeps — venv unusable on this host)
+- [x] `ruff` clean
+- [x] 6-format end-to-end on a synthetic 120 BPM kick+hat track: bar keys in every output
+- [x] HTML report shows the bar strip
+- [x] Three-way version check: pyproject == git tag == PyPI (all 0.7.0, 2026-11-08; wheel verified)
 
 ## Anti-drift
 - Bars ride on the existing beat grid — no new tempo estimation, no new
