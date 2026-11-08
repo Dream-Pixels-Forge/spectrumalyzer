@@ -38,6 +38,7 @@ TOOL_NAMES = (
     "render_report",
     "model_status",
     "trim_audio",
+    "generate_cut_list",
 )
 
 
@@ -304,6 +305,54 @@ def create_server() -> FastMCP:
             )
         except Exception as exc:  # noqa: BLE001 — surface ffmpeg/decoder errors to the agent
             return _err("trim_failed", detail=str(exc))
+
+    @mcp.tool()
+    def generate_cut_list(
+        path: str,
+        every_beats: int = 4,
+        section: str | None = None,
+        tier: str | None = None,
+        clip_len_s: float | None = None,
+        fps: float | None = None,
+    ) -> str:
+        """Generate an edit-decision cut list for video editing.
+
+        Pure selection over the analysis: cuts every N beats on the beat
+        grid, optionally restricted to one section label ('peak' = the
+        loudest section) and/or one impact tier ('downbeat'/'accent'/
+        'normal'), with optional clip windows (montage holds). Returns JSON
+        with {everyBeats, section, tier, clipLen, count, cuts:[{time,in,out,
+        frame,tier,section,energy,reason}]}. No media is cut — this is data
+        for your NLE's EDL/marker import.
+        """
+        p = Path(path)
+        if not p.exists():
+            return _err("file_not_found", path=path)
+        try:
+            from spectrumalyzer.analysis.cutlist import (
+                CutList,
+            )
+            from spectrumalyzer.analysis.cutlist import (
+                generate_cut_list as _gen,
+            )
+            from spectrumalyzer.api import analyze
+
+            result = analyze(str(p))
+            cuts = _gen(
+                result,
+                every_beats=every_beats,
+                section=section,
+                tier=tier,
+                clip_len=clip_len_s,
+                fps=fps,
+            )
+            cl = CutList(
+                cuts=cuts, every_beats=every_beats, section=section,
+                tier=tier, clip_len=clip_len_s, fps=fps or result.fps,
+            )
+            return json.dumps(cl.to_dict())
+        except Exception as exc:  # noqa: BLE001 — surface decoder errors to the agent
+            return _err("cut_list_failed", detail=str(exc))
 
     @mcp.resource("spectrumalyzer://formats")
     def formats() -> str:

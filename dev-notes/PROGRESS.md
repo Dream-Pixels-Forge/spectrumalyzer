@@ -5,7 +5,26 @@
 - Branch: `main`
 - Started: 2026-10-11
 - Current Phase: 3 (Engineer)
-- Status: **shipped** — v0.9.0 beat impact tiers, live on PyPI (2026-11-08)
+- Status: **shipped** — v1.0.0 cut-list generator, live on PyPI (2026-11-08)
+
+## v1.0.0 Cut-List Generator (2026-11-08)
+- [x] `analysis/cutlist.py` — `generate_cut_list(result, every_beats,
+      section, tier, clip_len, fps) -> list[Cut]` + `CutList.to_dict()` +
+      `cut_list_csv()`. Pure selection logic, no ffmpeg, no new DSP.
+- [x] `Cut` / `CutList` dataclasses (time, in, out, frame, tier, section,
+      energy, reason); clip windows truncated at the track end
+- [x] `section="peak"` falls back to the loudest section; unknown labels
+      fall back to the full cadence (no accidental empty result)
+- [x] `tier` filter rides the v0.9 impact tiers; pulseless track → []
+- [x] New `cuts` export format (stable EDL CSV: index, in, out, time,
+      frame, tier, section, reason)
+- [x] CLI `spectrumalyzer cuts AUDIO [--every N] [--section L]
+      [--tier T] [--clip-len S] [--fps N] [-o cuts.csv] [--json]`
+- [x] MCP tool `generate_cut_list` (JSON payload, no file writes)
+- [x] Package-root exports: `generate_cut_list`, `Cut`, `CutList`
+- [x] 16 new tests (157 total green, ruff clean)
+- [x] End-to-end verified on a beat-locked 120 BPM track: 6 cuts every 4
+      beats, `--every 2 --tier downbeat` → 3 cuts, `--json` stable shape
 
 ## v0.9.0 Beat Impact Tiers (2026-11-08)
 - [x] `impact_tiers(beat_grid, bars, accent_quantile)` in `analysis/beats.py`

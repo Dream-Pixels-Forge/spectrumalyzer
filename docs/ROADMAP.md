@@ -74,8 +74,13 @@
       exporters, JSON `beatTiers`/`impactTiers`, CSV `tier` column.
 
 ### v0.4 — workflow integration
-- [ ] **Cut-list generator** — `spectrumalyzer cuts track.mp3 --every 4beats
+- [x] **Cut-list generator** — `spectrumalyzer cuts track.mp3 --every 4beats
       --section peak` → edit-decision CSV/JSON for Premiere/Resolve scripting.
+      **Shipped in v1.0.0**: `generate_cut_list()` (every-N-beats cadence,
+      section + tier filters, optional montage clip windows), a `cuts`
+      export format (stable EDL CSV), the `cuts` CLI subcommand, and a
+      `generate_cut_list` MCP tool. Pure selection over the existing analysis
+      — no new DSP, no new dependencies.
 - [ ] **Ableton Live / FLP / REAPER project stubs** — markers as tempo-warped
       project items for composers syncing visuals to music.
 - [ ] **DaVinci Resolve scripting** (DaVinci API) — direct timeline marker

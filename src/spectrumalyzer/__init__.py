@@ -15,6 +15,7 @@ CLI:
 
 from spectrumalyzer._version import __version__
 from spectrumalyzer.analysis.beats import detect_bars, impact_tiers
+from spectrumalyzer.analysis.cutlist import Cut, CutList, generate_cut_list
 from spectrumalyzer.analysis.harmony import detect_key
 from spectrumalyzer.api import analyze
 from spectrumalyzer.model import AnalysisResult, Bar, Bars, Beat, ImpactTiers, KeyResult, Section
@@ -25,6 +26,8 @@ __all__ = [
     "Bar",
     "Bars",
     "Beat",
+    "Cut",
+    "CutList",
     "ImpactTiers",
     "KeyResult",
     "Section",
@@ -33,6 +36,7 @@ __all__ = [
     "analyze",
     "detect_bars",
     "detect_key",
+    "generate_cut_list",
     "impact_tiers",
     "select_trim_window",
     "trim",

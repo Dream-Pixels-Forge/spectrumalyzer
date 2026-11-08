@@ -248,7 +248,7 @@ def test_mcp_lean_payload_has_key():
     assert data["key"] != "unknown"
     assert "camelot" in data
     assert "palette" in data
-    expected = {"json", "remotion", "hyperframes", "ae", "csv", "fcpxml"}
+    expected = {"json", "remotion", "hyperframes", "ae", "csv", "fcpxml", "cuts"}
     assert expected == set(FORMATS.keys())
 
 

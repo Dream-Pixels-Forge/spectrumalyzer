@@ -4,6 +4,31 @@ All notable changes to spectrumalyzer are documented here.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 versioning follows [Semantic Versioning](https://semver.org/).
 
+## [1.0.0] — 2026-11-08
+
+### Added
+- **Cut-list generator** — the roadmap v0.4 item: an edit-decision list from
+  the analysis, not raw markers. Pure selection logic, no new DSP, no new
+  dependencies:
+  - `generate_cut_list(result, every_beats, section, tier, clip_len, fps)`
+    in `analysis/cutlist.py` — cuts every N beats on the beat grid,
+    optionally restricted to a section (`section="peak"` picks the loudest
+    region) and/or an impact tier (`"downbeat"`/`"accent"`/`"normal"`), with
+    optional montage-style clip windows (truncated at the track end).
+    Pulseless tracks return an empty list, no crash, no invented cuts.
+  - `Cut` / `CutList` models (`Cut.time`/`in`/`out`/`frame`/`tier`/`section`
+    /`energy`/`reason`, `CutList.to_dict()`).
+  - New **`cuts` export format** — a stable edit-decision CSV
+    (`index, in, out, time, frame, tier, section, reason`) for NLE
+    EDL / marker import or spreadsheet review.
+  - CLI: `spectrumalyzer cuts AUDIO [--every N] [--section LABEL]
+    [--tier downbeat] [--clip-len S] [--fps N] [-o cuts.csv] [--json]`.
+  - API: `generate_cut_list`, `Cut`, `CutList` at the package root.
+  - MCP tool `generate_cut_list` (returns JSON, no file writes).
+- 16 new tests (157 total green, ruff clean): cadence, section filter,
+  tier filter, clip-window truncation, no-grid no-crash, stable CSV columns,
+  the `cuts` format, public-API exposure.
+
 ## [0.9.0] — 2026-11-08
 
 ### Added

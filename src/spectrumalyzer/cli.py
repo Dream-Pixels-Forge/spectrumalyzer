@@ -213,6 +213,44 @@ def build_parser() -> argparse.ArgumentParser:
     )
     p_trim.add_argument("-q", "--quiet", action="store_true", help="Suppress progress output")
 
+    # ---- cuts -------------------------------------------------------------
+    p_cuts = sub.add_parser(
+        "cuts",
+        help="Generate an edit-decision cut list (every-N-beats, optional section/tier)",
+        description=(
+            "Turn the beat grid + bars + sections into a deterministic edit-decision "
+            "list. Output is data (CSV / JSON), not a media cut — feed it to your "
+            "NLE's marker/EDL import or a script."
+        ),
+    )
+    p_cuts.add_argument("audio", help="Audio file")
+    p_cuts.add_argument(
+        "--every", type=int, default=4,
+        help="Cut every N beats (default 4 = every bar)",
+    )
+    p_cuts.add_argument(
+        "--section", default=None,
+        help="Restrict to this section label (e.g. 'peak'); 'peak' falls back to the loudest section",
+    )
+    p_cuts.add_argument(
+        "--tier", default=None, choices=[None, "downbeat", "accent", "normal"],
+        help="Only cut on beats with this impact tier",
+    )
+    p_cuts.add_argument(
+        "--clip-len", type=float, default=None,
+        help="Give each cut a clip window of this length (montage 'hold this segment')",
+    )
+    p_cuts.add_argument("--fps", type=float, default=None, help="Video fps for frame numbers")
+    p_cuts.add_argument(
+        "-o", "--output", default=None,
+        help="Output CSV path (default: print to stdout)",
+    )
+    p_cuts.add_argument(
+        "--json", action="store_true",
+        help="Emit JSON instead of CSV",
+    )
+    p_cuts.add_argument("-q", "--quiet", action="store_true", help="Suppress progress output")
+
     return parser
 
 
@@ -522,6 +560,48 @@ def cmd_trim(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_cuts(args: argparse.Namespace) -> int:
+    import json as _json
+
+    from spectrumalyzer.analysis.cutlist import CutList, cut_list_csv, generate_cut_list
+    from spectrumalyzer.api import analyze
+
+    audio = Path(args.audio)
+    if not audio.exists():
+        print(f"Error: file not found: {audio}", file=sys.stderr)
+        return 1
+
+    _log(args.quiet, f"Analyzing {audio.name} …")
+    result = analyze(str(audio))
+    cuts = generate_cut_list(
+        result,
+        every_beats=args.every,
+        section=args.section,
+        tier=args.tier,
+        clip_len=args.clip_len,
+        fps=args.fps,
+    )
+    _log(args.quiet, f"{len(cuts)} cuts (every {args.every} beats)")
+    if not cuts:
+        _log(args.quiet, "No cuts — the track has no beat grid or the filters matched nothing.")
+        return 0
+    cl = CutList(cuts=cuts, every_beats=args.every, section=args.section,
+                  tier=args.tier, clip_len=args.clip_len, fps=args.fps or result.fps)
+    # ensure frame numbers are present when fps was requested
+    if args.fps:
+        from spectrumalyzer.model import time_to_frame
+        for c in cl.cuts:
+            if c.frame is None:
+                c.frame = time_to_frame(c.time, args.fps)
+    text = _json.dumps(cl.to_dict(), indent=2) if args.json else cut_list_csv(cl)
+    if args.output:
+        Path(args.output).write_text(text + "\n", encoding="utf-8")
+        _log(args.quiet, f"Cut list written: {args.output}")
+    else:
+        print(text)
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
@@ -543,6 +623,8 @@ def main(argv: list[str] | None = None) -> int:
         return cmd_find(args)
     if args.command == "trim":
         return cmd_trim(args)
+    if args.command == "cuts":
+        return cmd_cuts(args)
     parser.print_help()
     return 1
 

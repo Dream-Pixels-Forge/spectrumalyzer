@@ -9,6 +9,7 @@ from typing import Callable
 from spectrumalyzer.exporters import (
     aftereffects,
     csv_export,
+    cutlist,
     fcpxml,
     hyperframes,
     json_export,
@@ -59,6 +60,11 @@ FORMATS: dict[str, ExporterSpec] = {
             "fcpxml", ".fcpxml",
             "FCPXML markers for Final Cut Pro, Resolve, Compressor",
             fcpxml.render, requires_fps=True,
+        ),
+        ExporterSpec(
+            "cuts", ".cuts.csv",
+            "Edit-decision cut list (every 4 beats) for NLEs / montage editing",
+            cutlist.render,
         ),
     ]
 }
