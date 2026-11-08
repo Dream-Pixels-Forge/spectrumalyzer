@@ -84,9 +84,6 @@ dmypy.json
 .ruff_cache/
 .pytest_cache/
 
-# local pip --target deps (Cloudroom sandbox has no workable venv)
-.pydeps/
-
-# local test-deps cache (venv unusable on this host — Cloudroom AppImage
-# intercepts python3 in venvs; see dev-notes/PROGRESS.md env note)
+# local pip --target deps (Cloudroom sandbox has no workable venv — the
+# AppImage intercepts python3 inside venvs; see dev-notes/PROGRESS.md env note)
 .pydeps/
