@@ -18,6 +18,7 @@ function inline(s) {
 function renderMarkdown(md) {
   var lines = md.replace(/\r\n?/g, "\n").split("\n");
   var out = [], i = 0;
+  var sawContent = false; // the page supplies its own <h1>; skip the doc's leading one
   while (i < lines.length) {
     var line = lines[i];
     var m;
@@ -27,14 +28,17 @@ function renderMarkdown(md) {
       while (i < lines.length && !/^```/.test(lines[i])) buf.push(lines[i++]);
       i++; // closing fence
       out.push("<pre><code>" + esc(buf.join("\n")) + "</code></pre>");
+      sawContent = true;
       continue;
     }
     if (m = line.match(/^(#{1,4})\s+(.*)/)) {
       var lvl = m[1].length;
+      if (lvl === 1 && !sawContent) { i++; continue; }
       out.push("<h" + lvl + ">" + inline(m[2]) + "</h" + lvl + ">");
+      sawContent = true;
       i++; continue;
     }
-    if (/^(-{3,}|\*{3,})\s*$/.test(line)) { out.push("<hr>"); i++; continue; }
+    if (/^(-{3,}|\*{3,})\s*$/.test(line)) { out.push("<hr>"); sawContent = true; i++; continue; }
     if (/^\|/.test(line)) {
       var rows = [];
       while (i < lines.length && /^\|/.test(lines[i])) rows.push(lines[i++]);
@@ -49,28 +53,47 @@ function renderMarkdown(md) {
       }).join("");
       t += "</tbody></table>";
       out.push(t);
+      sawContent = true;
       continue;
     }
     if (/^>/.test(line)) {
       var q = [];
       while (i < lines.length && /^>/.test(lines[i])) q.push(lines[i++].replace(/^>\s?/, ""));
       out.push("<blockquote>" + q.map(inline).join("<br>") + "</blockquote>");
+      sawContent = true;
       continue;
     }
     if (/^\s*([-*+])\s+/.test(line) || /^\s*\d+\.\s+/.test(line)) {
       var ordered = /^\s*\d+\./.test(line);
-      var ul = [];
-      while (i < lines.length && (/^\s*([-*+])\s+/.test(lines[i]) || /^\s*\d+\.\s+/.test(lines[i]))) {
-        var item = lines[i++].replace(/^\s*([-*+]|\d+\.)\s+/, "");
+      var isItem = function (l) {
+        return /^\s*([-*+])\s+/.test(l) || /^\s*\d+\.\s+/.test(l);
+      };
+      var items = [];
+      while (i < lines.length) {
+        var l = lines[i];
+        if (isItem(l)) {
+          items.push(l.replace(/^\s*([-*+]|\d+\.)\s+/, ""));
+          i++;
+        } else if (items.length && /^\s{2,}\S/.test(l)) {
+          // wrapped continuation of the previous item — keep it inside the <li>
+          items[items.length - 1] += " " + l.trim();
+          i++;
+        } else if (/^\s*$/.test(l)) {
+          var nxt = lines[i + 1];
+          if (nxt !== undefined && (isItem(nxt) || (items.length && /^\s{2,}\S/.test(nxt)))) { i++; continue; }
+          break;
+        } else break;
+      }
+      var ul = items.map(function (item) {
         var task = item.match(/^\[( |x|X)\]\s*(.*)/);
         if (task) {
-          ul.push("<li><label><input type=\"checkbox\" disabled" +
-            (task[1] !== " " ? " checked" : "") + "> " + inline(task[2]) + "</label></li>");
-        } else {
-          ul.push("<li>" + inline(item) + "</li>");
+          return "<li><label><input type=\"checkbox\" disabled" +
+            (task[1] !== " " ? " checked" : "") + "> " + inline(task[2]) + "</label></li>";
         }
-      }
+        return "<li>" + inline(item) + "</li>";
+      });
       out.push((ordered ? "<ol>" : "<ul>") + ul.join("") + (ordered ? "</ol>" : "</ul>"));
+      sawContent = true;
       continue;
     }
     if (/^\s*$/.test(line)) { i++; continue; }
@@ -81,6 +104,7 @@ function renderMarkdown(md) {
       para.push(lines[i++]);
     }
     out.push("<p>" + para.map(inline).join(" ") + "</p>");
+    sawContent = true;
   }
   return out.join("\n");
 }
