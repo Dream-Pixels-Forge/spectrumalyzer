@@ -51,9 +51,13 @@
 > the items below shipped in those releases. They remain the v1.x backlog.
 
 ### v0.3 — musical intelligence
-- [ ] **Downbeat/bar detection** — kick-anchored phase gives the beat; add
+- [x] **Downbeat/bar detection** — kick-anchored phase gives the beat; add
       bar (4/4) grouping → exporters gain `barsInFrames` for measure-level
-      cuts (this is what "cut every 4 beats" workflows need).
+      cuts ("cut every 4 beats" workflows). **Shipped in v0.7.0**: `bars`
+      layer on the beat grid with `useBarIndex`/`useBarProgress`/`useIsOnBar`
+      Remotion helpers, BAR markers in AE/FCPXML/CSV, bar events in
+      HyperFrames, bar strip in the HTML report. Confidence flag for
+      weak-kick tracks.
 - [ ] **Musical key detection** (chroma profile → key) — creative mapping:
       Camelot wheel → palette/color-grade suggestion.
 - [ ] **Beat-strength quantiles → "impact tiers"** — pre-label beats as

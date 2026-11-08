@@ -5,9 +5,29 @@
 - Branch: `main`
 - Started: 2026-10-11
 - Current Phase: 3 (Engineer)
-- Status: **shipped** — v0.6.0 trimmer + release live on PyPI (2026-11-02)
+- Status: **shipped** — v0.7.0 bars & downbeats (2026-11-08)
 
-## v0.6.0 Trimmer (2026-11-02, in progress)
+## v0.7.0 Bars & Downbeats (2026-11-08)
+- [x] `detect_bars()` in `analysis/beats.py` — 4/4 grouping on the beat grid,
+      downbeat = first beat of each bar; confidence flag when kick anchor weak
+- [x] `Bar`/`Bars` dataclasses in `model.py` (index, beat_indices,
+      downbeat_time, frame/end_frame/downbeat_frame)
+- [x] `AnalysisResult.bars: Bars | None` wired through `analyze()`
+- [x] JSON export: `bars`, `downbeats`, `barCount`, `downbeatConfidence`
+- [x] Remotion: `barsInFrames`, `downbeatsInFrames`, `barPeriodInFrames`,
+      `useBarIndex`/`useBarProgress`/`useIsOnBar` in `useBeats.ts` hook
+- [x] HyperFrames: `bar` + `downbeat` timeline events
+- [x] After Effects: `BAR N` + `BAR N ↓` comp markers
+- [x] CSV: `bar` and `downbeat` row types
+- [x] FCPXML: `BAR N` + `BAR N ↓` markers
+- [x] HTML report: bar strip panel with downbeat ticks
+- [x] MCP `analyze_audio` lean payload includes bars
+- [x] CLI `analyze` prints bar count + first bars
+- [x] 13 new tests (122 total green, ruff clean); end-to-end verified on
+      synthetic 120 BPM kick+hat track (30 bars, downbeats on kicks)
+- [ ] Release v0.7.0 (version bump + tag + PyPI, on user's go)
+
+## v0.6.0 Trimmer (2026-11-02, shipped)
 - [x] `spectrumalyzer trim AUDIO_OR_VIDEO --length N [-o] [--crossfade] [--preview]`
 - [x] Window selection: loudness + onset density + section energy, cuts snapped to beat grid
       (`src/spectrumalyzer/trimmer.py` — pure logic, ffmpeg cut separate)
@@ -18,6 +38,24 @@
       (30 s target → chorus window 44.8–74.7 s) and an mp4
 - [x] Version bump 0.6.0 (pyproject + _version.py + CHANGELOG finalized, 2026-11-02)
 - [x] PyPI release of v0.6.0 (tag v0.6.0 → trusted-publishing workflow, green 2026-11-02)
+
+## v0.7.0 Bars & downbeats (2026-11-08)
+- [x] `detect_bars(beat_grid, bpm, confidence, fps)` in `analysis/beats.py` —
+      4/4 grouping of the kick-anchored beat grid; downbeat = bar start
+- [x] `Bar` + `Bars` model in `model.py` (frame math mirrors beat grid)
+- [x] `AnalysisResult.bars` populated by `analyze()` — additive, no breaking
+      change to existing keys
+- [x] All 6 exporters: bars/downbeats in json (barCount, downbeats,
+      downbeatConfidence), remotion (+useBarIndex/useBarProgress/useIsOnBar
+      in the hook), hyperframes (bar + downbeat events), ae (BAR N / BAR N ↓
+      markers), csv (bar/downbeat rows), fcpxml (BAR markers)
+- [x] HTML report bar strip (canvas, downbeat ticks)
+- [x] MCP `analyze_audio` lean payload gains `bars`/`downbeats`
+- [x] CLI `analyze` prints bar count + first bars
+- [x] 13 new tests (122 total green, ruff clean)
+- [x] End-to-end verified on synthetic 120 BPM kick+hat track: bars land on
+      accent downbeats, all 6 formats emit bar data
+- [ ] Release v0.7.0 (version bump + tag + PyPI, on user's go)
 
 ## Shipped Milestones
 - **v0.2.0** — "Creative Toolkit": real STFT/spectral-flux engine, 6 exporters, HTML report,

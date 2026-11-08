@@ -120,6 +120,32 @@ versioning follows [Semantic Versioning](https://semver.org/).
   not GitHub's `tree/<branch>/` URL syntax (verified live — found + installed
   the skill to 13 agent platforms).
 
+## [0.7.0] — 2026-11-08
+
+### Added
+- **Bars & downbeats** — measure-level structure on top of the beat grid:
+  - `detect_bars()` — groups the beat grid into 4/4 bars; downbeat = first
+    beat of each bar. Confidence flag (0.0 when the kick anchor is weak,
+    meaning the downbeat phase is off-by-one-beat ambiguous).
+  - `AnalysisResult.bars: Bars | None` with `Bar` model (index,
+    beat_indices, downbeat_time/start_time/end_time, frame/end_frame/
+    downbeat_frame) — frame math mirrors the beat-grid convention.
+  - JSON export: `bars` (time + frames), `downbeats`, `barCount`,
+    `downbeatConfidence`.
+  - Remotion: `barsInFrames`, `downbeatsInFrames`, `barPeriodInFrames`,
+    `barCount`, `downbeatConfidence` in the data; `useBarIndex()`,
+    `useBarProgress()`, `useIsOnBar()` in the `useBeats.ts` hook.
+  - HyperFrames: `bar` + `downbeat` timeline events.
+  - After Effects: `BAR N` + `BAR N ↓` comp markers.
+  - CSV: `bar` and `downbeat` row types.
+  - FCPXML: `BAR N` + `BAR N ↓` markers.
+  - HTML report: bar strip panel with downbeat ticks.
+- MCP `analyze_audio` lean payload now includes `bars`/`downbeats`
+  (cheap, always-on).
+- CLI `analyze` prints the bar count and first bars.
+- 13 new tests (bar grouping, confidence fallback, per-exporter bar
+  presence + frame math, end-to-end on a synthetic 120 BPM kick+hat track).
+
 ## [0.6.0] — 2026-11-02
 
 ### Added
