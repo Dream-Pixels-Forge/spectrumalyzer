@@ -5,7 +5,25 @@
 - Branch: `main`
 - Started: 2026-10-11
 - Current Phase: 3 (Engineer)
-- Status: **shipped** — v1.2.0 DSP performance, live on PyPI (2026-11-11)
+- Status: **shipped** — v1.3.0 watch mode, live on PyPI (2026-11-11)
+
+## v1.3.0 Watch Mode (2026-11-11)
+- [x] `watch.py` — `change_key(path) -> (mtime_ns, size)` +
+      `WatchSession(path, out, *, formats, fps, on_change, sleep_fn)`:
+      `.poll()` re-analyzes (via v1.1 `analyze_cached`) + re-exports only when
+      the key changes; `.run(interval, max_polls, stop_event)` blocking loop
+      with an injectable clock (no sleeps in tests)
+- [x] Polling, not inotify (documented: portable, no `watchdog` dep; inotify
+      is a v2 refinement)
+- [x] CLI `spectrumalyzer watch AUDIO [--interval S] [--format X,Y] [--fps N]
+      [-o OUT]` — one line per change to stderr, Ctrl-C to stop
+- [x] MCP tool `watch_file` — non-blocking single poll per call (in-process
+      per-path session state), returns `{"changed", "bpm", "beats", "cacheHit",
+      "output"}`
+- [x] Package-root exports: `WatchSession`, `change_key`
+- [x] 10 new watch tests + 1 MCP test (191 total green, ruff clean)
+- [x] Release v1.3.0 (tag v1.3.0 → trusted-publishing workflow → PyPI live
+      2026-11-11; three-way check: pyproject == tag == release == PyPI == 1.3.0)
 
 ## v1.2.0 DSP Performance (2026-11-11)
 - [x] scipy/pocketfft speedup **measured and rejected** — `scipy.fft.rfft`

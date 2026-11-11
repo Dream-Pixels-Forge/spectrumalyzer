@@ -4,6 +4,30 @@ All notable changes to spectrumalyzer are documented here.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 versioning follows [Semantic Versioning](https://semver.org/).
 
+## [1.3.0] — 2026-11-11
+
+### Added
+- **Watch mode** (`watch.py`) — `WatchSession` polls a source file's
+  `(mtime_ns, size)` and re-analyzes + re-exports only when it changes.
+  Re-analyzes through the v1.1 `analyze_cached` path, so a touch that bumps
+  mtime but not content is an instant cache hit. Pure stdlib polling — no
+  `watchdog`/inotify dependency (portable; inotify is a v2 refinement).
+- **CLI** `spectrumalyzer watch AUDIO [--interval S] [--format X,Y]
+  [--fps N] [-o OUT]` — re-export on every change, one line per change to
+  stderr, Ctrl-C to stop.
+- **MCP tool** `watch_file` — non-blocking single poll per call (the engine's
+  `poll()` is exactly that shape), per-path in-process session state; returns
+  `{"changed", "bpm", "beats", "cacheHit", "output"}`.
+- **10 new tests** (`tests/test_watch.py`) — `change_key`, poll
+  unchanged/changed, cache-hit re-export, `run()` with an injectable fake
+  clock + stop event, `on_change` callback, CLI subcommand parsing; plus the
+  `watch_file` tool in the MCP test. 191 total green, ruff clean.
+
+### Notes
+- `WatchSession` and `change_key` are exported from the package root.
+- `WatchSession.run(interval, max_polls=None, stop_event=None)` accepts an
+  injectable `sleep_fn` so tests never sleep in CI.
+
 ## [1.2.0] — 2026-11-11
 
 ### Added

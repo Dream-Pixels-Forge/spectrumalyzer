@@ -21,6 +21,7 @@ from spectrumalyzer.analysis.harmony import detect_key
 from spectrumalyzer.api import analyze
 from spectrumalyzer.model import AnalysisResult, Bar, Bars, Beat, ImpactTiers, KeyResult, Section
 from spectrumalyzer.trimmer import TrimSelection, select_trim_window, trim, trim_audio
+from spectrumalyzer.watch import WatchSession, change_key
 
 __all__ = [
     "AnalysisResult",
@@ -35,9 +36,11 @@ __all__ = [
     "KeyResult",
     "Section",
     "TrimSelection",
+    "WatchSession",
     "__version__",
     "analyze",
     "analyze_cached",
+    "change_key",
     "detect_bars",
     "detect_key",
     "generate_cut_list",

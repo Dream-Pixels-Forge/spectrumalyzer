@@ -255,6 +255,35 @@ def build_parser() -> argparse.ArgumentParser:
     )
     p_cuts.add_argument("-q", "--quiet", action="store_true", help="Suppress progress output")
 
+    # ---- watch ------------------------------------------------------------
+    p_watch = sub.add_parser(
+        "watch",
+        help="Re-analyze + re-export when the file changes (polling)",
+        description=(
+            "Watch an audio file and re-export every time it changes. Polls "
+            "the file's mtime+size; on a change it re-runs the analysis "
+            "(through the v1.1 precomputed cache) and re-exports. Ctrl-C to stop."
+        ),
+    )
+    p_watch.add_argument("audio", help="Audio file to watch")
+    p_watch.add_argument(
+        "--interval", type=float, default=1.0,
+        help="Poll interval in seconds (default 1.0)",
+    )
+    p_watch.add_argument(
+        "-f", "--format", default="json",
+        help=f"Comma-separated formats to export on each change: {', '.join(FORMATS)} (default json)",
+    )
+    p_watch.add_argument(
+        "--fps", type=float, default=None,
+        help="Video frame rate for frame-based exports",
+    )
+    p_watch.add_argument(
+        "-o", "--output", default=None,
+        help="Output base path (default: <audio stem> next to the source)",
+    )
+    p_watch.add_argument("-q", "--quiet", action="store_true", help="Suppress progress output")
+
     return parser
 
 
@@ -609,6 +638,41 @@ def cmd_cuts(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_watch(args: argparse.Namespace) -> int:
+    from spectrumalyzer.watch import WatchSession
+
+    audio = Path(args.audio)
+    if not audio.exists():
+        print(f"Error: file not found: {audio}", file=sys.stderr)
+        return 1
+
+    formats = _resolve_format(args.format)
+    out_base = args.output or str(audio.with_suffix(""))
+    sess = WatchSession(
+        str(audio),
+        out_base,
+        formats=formats,
+        fps=args.fps,
+        on_change=lambda r, hit: _log(
+            args.quiet,
+            f"change detected — re-exported ({r.beat_count} beats, "
+            f"cache {'hit' if hit else 'miss'})"
+            f"  bpm={r.bpm:.1f}"
+        ),
+    )
+
+    _log(args.quiet, f"Watching {audio.name} every {args.interval}s — Ctrl-C to stop")
+    _log(args.quiet, f"Exporting: {', '.join(formats)}")
+
+    try:
+        sess.run(interval=args.interval)
+    except KeyboardInterrupt:
+        pass
+
+    _log(args.quiet, f"Stopped. {sess.changes} re-export(s).")
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
@@ -632,6 +696,8 @@ def main(argv: list[str] | None = None) -> int:
         return cmd_trim(args)
     if args.command == "cuts":
         return cmd_cuts(args)
+    if args.command == "watch":
+        return cmd_watch(args)
     parser.print_help()
     return 1
 

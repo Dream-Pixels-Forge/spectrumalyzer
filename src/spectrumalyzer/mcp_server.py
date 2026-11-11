@@ -30,6 +30,11 @@ from mcp.server.fastmcp import FastMCP
 from spectrumalyzer._version import __version__
 from spectrumalyzer.exporters import FORMATS, export, export_filename, extra_files
 
+# Per-process watch state for the `watch_file` MCP tool: one WatchSession per
+# watched path, plus the last AnalysisResult (for the lean changed payload).
+_watch_sessions: dict[str, Any] = {}
+_watch_last_result: dict[str, Any] = {}
+
 TOOL_NAMES = (
     "analyze_audio",
     "describe_audio",
@@ -39,6 +44,7 @@ TOOL_NAMES = (
     "model_status",
     "trim_audio",
     "generate_cut_list",
+    "watch_file",
 )
 
 
@@ -61,6 +67,10 @@ def _analyze_lean(path: str, fps: float | None, include_analysis: bool,
         data.pop("centroid", None)
         data.pop("waveformPeaks", None)
     return data
+
+
+_watch_sessions: dict[str, Any] = {}
+_watch_last_result: dict[str, Any] = {}
 
 
 def create_server() -> FastMCP:
@@ -353,6 +363,59 @@ def create_server() -> FastMCP:
             return json.dumps(cl.to_dict())
         except Exception as exc:  # noqa: BLE001 — surface decoder errors to the agent
             return _err("cut_list_failed", detail=str(exc))
+
+    @mcp.tool()
+    def watch_file(
+        path: str,
+        output: str | None = None,
+        fps: float | None = None,
+        format: str = "json",
+    ) -> str:
+        """Check once whether an audio file has changed since the last watch;
+        if so, re-analyze and re-export.
+
+        Non-blocking single poll (the CLI's `watch` subcommand is the blocking
+        loop version; this is for agents that poll in their own loop). The
+        "last seen" state is tracked in-process per path, so a fresh process
+        always reports the first call as a change. Returns
+        {"changed", "bpm", "beats", "cacheHit", "output"} or an error.
+        """
+        p = Path(path)
+        if not p.exists():
+            return _err("file_not_found", path=path)
+        try:
+            from spectrumalyzer.watch import WatchSession
+
+            out = output or str(p.with_suffix(""))
+            fmts = [f.strip().lower() for f in format.split(",") if f.strip()]
+            unknown = [f for f in fmts if f not in FORMATS]
+            if unknown:
+                return _err("invalid_format", unknown=unknown, available=sorted(FORMATS))
+            needs_fps = any(FORMATS[f].requires_fps for f in fmts)
+            if needs_fps and not fps:
+                return _err(
+                    "fps_required",
+                    formats_requiring_fps=[f for f in fmts if FORMATS[f].requires_fps],
+                )
+            key = str(p)
+            sess = _watch_sessions.get(key)
+            if sess is None:
+                sess = WatchSession(
+                    key, out, formats=tuple(fmts), fps=fps,
+                    on_change=lambda r, _hit: _watch_last_result.__setitem__(key, r),
+                )
+                _watch_sessions[key] = sess
+            changed = sess.poll()
+            payload: dict[str, Any] = {"changed": changed}
+            if changed:
+                last = _watch_last_result.get(key)
+                payload["bpm"] = round(last.bpm, 2) if last else None
+                payload["beats"] = len(last.beat_grid) if last else None
+                payload["cacheHit"] = sess.last_cache_hit
+                payload["output"] = out
+            return json.dumps(payload)
+        except Exception as exc:  # noqa: BLE001
+            return _err("watch_failed", detail=str(exc))
 
     @mcp.resource("spectrumalyzer://formats")
     def formats() -> str:

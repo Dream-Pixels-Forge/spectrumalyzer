@@ -85,7 +85,7 @@
       project items for composers syncing visuals to music.
 - [ ] **DaVinci Resolve scripting** (DaVinci API) — direct timeline marker
       injection, no CSV middleman.
-- [ ] **Watch mode** — re-analyze on file change for iterative edit sessions.
+- [ ] **Watch mode** — re-analyze on file change for iterative edit sessions. (shipped v1.3.0)
 
 ### v0.5 — performance & reach
 - [x] **Streaming/CLI speed**: ffmpeg pipe decode already streams; move STFT
