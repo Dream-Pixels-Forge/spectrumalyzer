@@ -143,13 +143,12 @@ def test_autocorr_matches_np_correlate():
     assert np.allclose(got, full, rtol=1e-6, atol=1e-6)
 
 
-def test_estimate_tempo_fft_matches_old_on_clicks():
+def test_estimate_tempo_fft_matches_old_on_clicks(click_90, click_120, click_140):
     """The FFT-autocorr estimate_tempo must agree with a direct np.correlate
     implementation on the 90/120/140 BPM click fixtures."""
     from spectrumalyzer.analysis.beats import _frames_per_second, onset_envelope
 
-    for fixture in ("click_90", "click_120", "click_140"):
-        f = _load_fixture(fixture)
+    for f in (click_90, click_120, click_140):
         pcm, _, sr = load(str(f))
         env = onset_envelope(pcm, sr)
         fps_env = _frames_per_second(sr, 512)
@@ -168,21 +167,7 @@ def test_estimate_tempo_fft_matches_old_on_clicks():
 
         # new: FFT-based (via estimate_tempo)
         bpm_new, _conf = estimate_tempo(pcm, sr, min_bpm, max_bpm)
-        assert abs(bpm_new - old_bpm) <= 1.0, f"{fixture}: {bpm_new} vs {old_bpm}"
-
-
-def _load_fixture(name: str):
-    """Locate a session-scoped click fixture by its conftest name."""
-    import pathlib
-    import tempfile
-
-    # The fixtures are built by conftest into tmp dirs; re-synthesise here so
-    # this test is self-contained and doesn't depend on pytest fixture state.
-    from tests.conftest import click_track, write_wav
-
-    bpm_map = {"click_90": 90.0, "click_120": 120.0, "click_140": 140.0}
-    p = pathlib.Path(tempfile.gettempdir()) / f"perf_{name}.wav"
-    return write_wav(p, click_track(bpm_map[name]))
+        assert abs(bpm_new - old_bpm) <= 1.0, f"{f.name}: {bpm_new} vs {old_bpm}"
 
 
 # ---------------------------------------------------------------------------
