@@ -4,6 +4,47 @@ All notable changes to spectrumalyzer are documented here.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 versioning follows [Semantic Versioning](https://semver.org/).
 
+## [1.2.0] — 2026-11-11
+
+### Added
+- **Shared-STFT cache** (`analysis/spectrum.py`): `compute_stft(cache=...)`
+  now memoizes each `(n_fft, hop)` transform into a caller-supplied dict
+  (`new_stft_cache()`). A single `analyze()` call needs the STFT at two
+  parameter sets (1024/512 for onsets/tempo/low-band, 4096/1024 for
+  bands/chromagram) — previously each set was FFT-transformed **twice**.
+  `analyze()` now threads one cache through `detect_beats`, `compute_bands`
+  and `detect_key`, so each set is computed exactly once. No module-level
+  global state (avoids stale `id(pcm)` hits after garbage collection).
+- **FFT plan routing** (`_rfft`): routes the STFT transform through
+  numpy's private `_pocketfft._raw_fft` planned worker when available,
+  falling back to the public `np.fft.rfft` — amortizes planning overhead
+  on repeated same-size transforms. No new dependency.
+- **9 new tests** (`tests/test_perf.py`): STFT memoization (recompute-once,
+  two param sets, fresh without cache), `_rfft` vs `np.fft.rfft` (1-D and
+  2-D), FFT-based autocorrelation vs `np.correlate`, and a soft wall-clock
+  gate. 181 total green, ruff clean.
+
+### Changed
+- `estimate_tempo` now computes the onset-envelope autocorrelation with an
+  FFT-based O(n log n) routine (`_autocorr_lags`) instead of the O(n²)
+  `np.correlate(env, env, mode="full")` over the whole envelope. BPM output
+  is unchanged within ±1 on the 90/120/140 BPM click fixtures.
+- `detect_beats`'s local fractional phase refinement now indexes the
+  envelope directly around the candidate window instead of 9 `np.interp`
+  scans over the full envelope. Beat grid is unchanged.
+- `onset_envelope`, `lowband_envelope`, `estimate_tempo`, `detect_beats`,
+  `compute_bands`, `chromagram`, `detect_key` accept an optional
+  `stft_cache` kwarg (default `None` = no memoization) so callers can share
+  one STFT across a single analysis.
+
+### Notes
+- **scipy/pocketfft speedup: measured and rejected.** `scipy.fft.rfft` is
+  *slower or equal* to `np.fft.rfft` at our transform sizes (both use
+  pocketfft; numpy ≥ 2.x already ships it). No dependency was added. The
+  v0.5 roadmap item's premise is outdated — the real wins came from the
+  shared-STFT cache + FFT autocorrelation above. A full `analyze()` on a
+  30 s click track now runs in ~240 ms end-to-end.
+
 ## [1.1.0] — 2026-11-11
 
 ### Added

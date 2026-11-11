@@ -88,8 +88,14 @@
 - [ ] **Watch mode** — re-analyze on file change for iterative edit sessions.
 
 ### v0.5 — performance & reach
-- [ ] **Streaming/CLI speed**: ffmpeg pipe decode already streams; move STFT
+- [x] **Streaming/CLI speed**: ffmpeg pipe decode already streams; move STFT
       to `scipy.fft` (pocketfft) when scipy present — ~2× on long tracks.
+      **v1.2.0 measured this and rejected it**: `scipy.fft.rfft` is
+      *slower or equal* to `np.fft.rfft` at our sizes (numpy ≥ 2.x already
+      ships pocketfft). No scipy dependency was added. The real perf wins
+      shipped in v1.2.0 instead: a shared-STFT cache (each FFT set computed
+      once per `analyze()` call), FFT-based O(n log n) autocorrelation, and
+      vectorized phase refinement — ~240 ms end-to-end on a 30 s click.
 - [ ] **GPU path** (optional `cupy` extra) for hour-long sets.
 - [ ] **Web/WASM build** (Pyodide) — in-browser analysis for web-based editors
       (Remotion Studio plugins, HyperFrames Studio).

@@ -71,13 +71,14 @@ def _pitch_class_matrix(n_fft: int, sample_rate: int) -> np.ndarray:
 
 
 def chromagram(pcm: np.ndarray, sample_rate: int,
-               n_fft: int = 4096, hop: int = 1024) -> np.ndarray:
+               n_fft: int = 4096, hop: int = 1024,
+               stft_cache: dict | None = None) -> np.ndarray:
     """Aggregate 12-dim chroma vector for the whole signal.
 
     Returns a 1-D array of shape (12,) with per-pitch-class energy,
     roughly normalized (max ~1).
     """
-    mags, _ = compute_stft(pcm, sample_rate, n_fft, hop)
+    mags, _ = compute_stft(pcm, sample_rate, n_fft, hop, cache=stft_cache)
     if mags.shape[1] == 0:
         return np.zeros(12)
     pc_w = _pitch_class_matrix(n_fft, sample_rate)  # (n_bins, 12)
@@ -189,7 +190,8 @@ from typing import Any
 
 
 def detect_key(pcm: np.ndarray, sample_rate: int,
-               n_fft: int = 4096, hop: int = 1024) -> KeyResult:
+               n_fft: int = 4096, hop: int = 1024,
+               stft_cache: dict | None = None) -> KeyResult:
     """Detect the musical key of ``pcm`` (whole-track, aggregated chroma).
 
     Returns a KeyResult with the best-fit K-S key, a 0..1 confidence, the
@@ -199,7 +201,7 @@ def detect_key(pcm: np.ndarray, sample_rate: int,
     if len(pcm) < n_fft:
         return KeyResult()
 
-    chroma = chromagram(pcm, sample_rate, n_fft, hop)
+    chroma = chromagram(pcm, sample_rate, n_fft, hop, stft_cache=stft_cache)
     # salience gate: is the chroma actually peaked (tonal) or flat (noise)?
     # Tonal material concentrates energy on the tonic + a few pitch classes,
     # so max/mean >> 1. Noise is near-uniform (max/mean ~1.1).

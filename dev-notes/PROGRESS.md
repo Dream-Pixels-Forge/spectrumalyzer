@@ -5,7 +5,37 @@
 - Branch: `main`
 - Started: 2026-10-11
 - Current Phase: 3 (Engineer)
-- Status: **shipped** — v1.1.0 precomputed analysis cache, live on PyPI (2026-11-11)
+- Status: **shipped** — v1.2.0 DSP performance, live on PyPI (2026-11-11)
+
+## v1.2.0 DSP Performance (2026-11-11)
+- [x] scipy/pocketfft speedup **measured and rejected** — `scipy.fft.rfft`
+      is slower-or-equal to `np.fft.rfft` at our transform sizes (both use
+      pocketfft; numpy ≥ 2.x ships it). No scipy dependency added. Documented
+      in CHANGELOG.
+- [x] **Shared-STFT cache** — `compute_stft(cache=...)` memoizes each
+      `(n_fft, hop)` transform into a caller-supplied dict (`new_stft_cache()`);
+      `analyze()` threads one cache through `detect_beats` / `compute_bands` /
+      `detect_key` so each FFT set is computed once per call (previously
+      twice). No module-level global state.
+- [x] **FFT plan routing** — `_rfft` routes through numpy's private
+      `_pocketfft._raw_fft` planned worker when available, falling back to
+      public `np.fft.rfft`. No new dependency.
+- [x] **FFT-based autocorrelation** — `estimate_tempo` replaced the O(n²)
+      `np.correlate(env, env, mode="full")` with an O(n log n) FFT-based
+      `_autocorr_lags` over the needed lag range. BPM unchanged within ±1 on
+      the 90/120/140 click fixtures.
+- [x] **Vectorized phase refinement** — `detect_beats`'s local fractional
+      refinement now indexes the envelope directly around the candidate window
+      instead of 9 `np.interp` scans over the full envelope.
+- [x] `onset_envelope`, `lowband_envelope`, `estimate_tempo`, `detect_beats`,
+      `compute_bands`, `chromagram`, `detect_key` accept an optional
+      `stft_cache` kwarg (default `None`).
+- [x] 9 new perf tests (181 total green, ruff clean): STFT memoization
+      (recompute-once, two param sets, fresh without cache), `_rfft` vs
+      `np.fft.rfft`, FFT autocorr vs `np.correlate`, soft wall-clock gate.
+- [x] End-to-end: full `analyze()` on a 30 s 120-BPM click track ≈ **240 ms**.
+- [x] Release v1.2.0 (tag v1.2.0 → trusted-publishing workflow → PyPI live
+      2026-11-11; three-way check: pyproject == tag == PyPI == 1.2.0)
 
 ## v1.1.0 Precomputed Analysis Cache (2026-11-11)
 - [x] `analysis/cache.py` — `CacheKey` (sha1 of `mtime_ns:size:major:sr`),

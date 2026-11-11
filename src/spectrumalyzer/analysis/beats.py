@@ -49,9 +49,10 @@ def _smooth(x: np.ndarray, k: int = 3) -> np.ndarray:
 
 
 def onset_envelope(pcm: np.ndarray, sample_rate: int,
-                   n_fft: int = DEFAULT_N_FFT, hop: int = DEFAULT_HOP) -> np.ndarray:
+                   n_fft: int = DEFAULT_N_FFT, hop: int = DEFAULT_HOP,
+                   stft_cache: dict | None = None) -> np.ndarray:
     """Normalized (0..1) spectral-flux onset envelope, one value per hop frame."""
-    mags, _ = compute_stft(pcm, sample_rate, n_fft, hop)
+    mags, _ = compute_stft(pcm, sample_rate, n_fft, hop, cache=stft_cache)
     env = spectral_flux(mags)
     peak = float(env.max())
     if peak > 0:
@@ -63,6 +64,24 @@ def _frames_per_second(sample_rate: int, hop: int) -> float:
     return sample_rate / hop
 
 
+def _autocorr_lags(x: np.ndarray, lags: np.ndarray) -> np.ndarray:
+    """FFT-based autocorrelation at the requested lags only.
+
+    O(n log n) instead of the O(n²) ``np.correlate(x, x, mode='full')``:
+    the zero-padded FFT gives the full autocorrelation, and we slice out
+    just the lags the tempo search needs.
+    """
+    n = len(x)
+    m = 2 * n - 1
+    # next fast length (pow2 is enough here; sizes are small)
+    size = 1
+    while size < m:
+        size *= 2
+    X = np.fft.rfft(x, n=size)
+    acf_full = np.fft.irfft(X * np.conj(X), n=size)[:m]
+    return acf_full[lags]
+
+
 def estimate_tempo(
     pcm: np.ndarray,
     sample_rate: int,
@@ -70,6 +89,7 @@ def estimate_tempo(
     max_bpm: float = 200.0,
     n_fft: int = DEFAULT_N_FFT,
     hop: int = DEFAULT_HOP,
+    stft_cache: dict | None = None,
 ) -> tuple[float, float]:
     """Estimate BPM from the onset envelope via autocorrelation.
 
@@ -81,7 +101,7 @@ def estimate_tempo(
     Returns (bpm, confidence) with confidence in 0..1 (autocorrelation peak
     sharpness; 1 = metronome-perfect).
     """
-    env = onset_envelope(pcm, sample_rate, n_fft, hop)
+    env = onset_envelope(pcm, sample_rate, n_fft, hop, stft_cache=stft_cache)
     fps_env = _frames_per_second(sample_rate, hop)
 
     min_lag = max(2, round(fps_env * 60.0 / max_bpm))
@@ -89,19 +109,21 @@ def estimate_tempo(
     if max_lag <= min_lag or len(env) < max_lag * 3:
         return 0.0, 0.0
 
-    acf = np.correlate(env, env, mode="full")[len(env) - 1:]
+    # Full-lag autocorrelation via FFT (O(n log n)); normalize by lag-0.
+    lags_all = np.arange(max_lag + 1)
+    acf = _autocorr_lags(env, lags_all)
     if acf[0] <= 0:
         return 0.0, 0.0
     acf = acf / acf[0]
 
-    lags = np.arange(min_lag, max_lag + 1)
+    lags = lags_all
     scores = acf[min_lag:max_lag + 1].copy()
     if len(scores) == 0 or scores.max() <= 0:
         return 0.0, 0.0
 
     best_score = float(scores.max())
     # candidates within 90% of the best, choose the shortest lag (fastest BPM)
-    qualified = lags[scores >= 0.9 * best_score]
+    qualified = lags[min_lag:max_lag + 1][scores >= 0.9 * best_score]
     lag = int(qualified.min())
 
     # parabolic refinement around the peak for sub-frame precision
@@ -126,14 +148,15 @@ def estimate_tempo(
 
 
 def lowband_envelope(pcm: np.ndarray, sample_rate: int, cutoff_hz: float = 250.0,
-                     n_fft: int = DEFAULT_N_FFT, hop: int = DEFAULT_HOP) -> np.ndarray:
+                     n_fft: int = DEFAULT_N_FFT, hop: int = DEFAULT_HOP,
+                     stft_cache: dict | None = None) -> np.ndarray:
     """Onset envelope built only from low frequencies (< cutoff, the kick zone).
 
     Noise hats and snare transients carry far more broadband flux than a 60 Hz
     kick; anchoring the beat phase on the low band keeps the grid on the beat
     instead of the off-beat.
     """
-    mags, _ = compute_stft(pcm, sample_rate, n_fft, hop)
+    mags, _ = compute_stft(pcm, sample_rate, n_fft, hop, cache=stft_cache)
     freqs = np.fft.rfftfreq(n_fft, d=1.0 / sample_rate)
     low = mags[freqs <= cutoff_hz, :]
     if low.shape[0] == 0:
@@ -319,13 +342,14 @@ def detect_beats(
     min_bpm: float = 60.0,
     max_bpm: float = 200.0,
     duration: float = 0.0,
+    stft_cache: dict | None = None,
 ) -> dict[str, object]:
     """Full beat analysis: onsets, BPM, phase-locked uniform beat grid."""
-    env = onset_envelope(pcm, sample_rate)
+    env = onset_envelope(pcm, sample_rate, stft_cache=stft_cache)
     fps_env = _frames_per_second(sample_rate, DEFAULT_HOP)
 
     onsets = pick_onsets(env, sample_rate)
-    bpm, confidence = estimate_tempo(pcm, sample_rate, min_bpm, max_bpm)
+    bpm, confidence = estimate_tempo(pcm, sample_rate, min_bpm, max_bpm, stft_cache=stft_cache)
 
     # Honesty gate: pulseless material (ambient, pads, noise beds) yields a
     # sharp-looking but meaningless autocorrelation peak. Refuse to report a
@@ -347,7 +371,7 @@ def detect_beats(
         #           (2) weighted circular mean of onsets,
         #           (3) brute-force envelope energy.
         phase = None
-        kick_env = lowband_envelope(pcm, sample_rate)
+        kick_env = lowband_envelope(pcm, sample_rate, stft_cache=stft_cache)
         if float(kick_env.max()) > 0.1 * max(float(env.max()), 1e-9) and duration > 0:
             phase, _score = _phase_from_envelope(kick_env, period_frames)
         if phase is None:
@@ -356,12 +380,12 @@ def detect_beats(
             phase, _best = _phase_from_envelope(env, period_frames)
 
         # local fractional refinement around the phase (max env energy)
-        candidates = np.arange(phase - 2.0, phase + 2.01, 0.25)
-        vals = []
-        for pos in candidates:
-            pos_mod = pos % period_frames
-            vals.append(float(np.interp(pos_mod, np.arange(n), env)) if pos_mod < n else 0.0)
-        phase = float(candidates[int(np.argmax(vals))] % period_frames)
+        # — direct indexing, no full-envelope np.interp scan
+        lo = max(0, int(np.floor(phase - 2.0)))
+        hi = min(n, int(np.ceil(phase + 2.0)))
+        candidates = np.arange(lo, hi, 1)
+        vals = env[candidates]
+        phase = float((lo + int(np.argmax(vals))) % period_frames)
 
         k = 0
         while True:

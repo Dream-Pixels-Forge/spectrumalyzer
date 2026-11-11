@@ -55,12 +55,19 @@ def analyze(
     if len(pcm) == 0:
         raise ValueError(f"No decodable audio in {path}")
 
-    beats = detect_beats(pcm, sr, min_bpm=min_bpm, max_bpm=max_bpm, duration=duration)
+    # One shared STFT cache for this analysis call: the 1024/512 and 4096/1024
+    # transforms are each computed once and reused by every consumer.
+    from spectrumalyzer.analysis.spectrum import new_stft_cache
 
-    band_data = compute_bands(pcm, sr) if bands else None
+    cache = new_stft_cache()
+
+    beats = detect_beats(
+        pcm, sr, min_bpm=min_bpm, max_bpm=max_bpm, duration=duration, stft_cache=cache,
+    )
+
+    band_data = compute_bands(pcm, sr, stft_cache=cache) if bands else None
     if band_data is not None:
-
-        mags, _ = __import__("spectrumalyzer.analysis.spectrum", fromlist=["compute_stft"]).compute_stft(pcm, sr)
+        mags, _ = compute_stft_cached(pcm, sr, cache)
         centroid = spectral_centroid(mags, sr)
     else:
         centroid = []
@@ -101,5 +108,13 @@ def analyze(
     impact_tiers(result.beat_grid, result.bars, accent_quantile=accent_quantile)
     result.impact_tiers = _build_impact_tiers(result.beat_grid, accent_quantile)
     if key:
-        result.key = detect_key(pcm, sr)
+        result.key = detect_key(pcm, sr, stft_cache=cache)
     return result
+
+
+def compute_stft_cached(pcm: np.ndarray, sample_rate: int, cache,
+                        n_fft: int = 1024, hop: int = 512):
+    """``compute_stft`` with an explicit shared cache (re-export for api use)."""
+    from spectrumalyzer.analysis.spectrum import compute_stft
+
+    return compute_stft(pcm, sample_rate, n_fft=n_fft, hop=hop, cache=cache)

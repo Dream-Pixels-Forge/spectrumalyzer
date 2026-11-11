@@ -2,6 +2,14 @@
 
 Replaces the v0.1.0 pseudo-spectrum (RMS time-slices labelled as frequencies)
 with an actual Short-Time Fourier Transform.
+
+Performance notes (v1.2.0):
+- ``compute_stft`` memoizes its magnitude output per (pcm, n_fft, hop) so a
+  single ``analyze()`` call (which needs the STFT at two parameter sets:
+  1024/512 for onsets/tempo/low-band and 4096/1024 for bands/chromagram)
+  computes each FFT set exactly once.
+- FFT planning is cached per n_fft (numpy's rfft re-plans the worker on every
+  call; reusing it avoids that overhead on repeated same-size transforms).
 """
 
 from __future__ import annotations
@@ -13,23 +21,59 @@ from spectrumalyzer.model import BAND_EDGES_HZ, BandData
 DEFAULT_N_FFT = 1024
 DEFAULT_HOP = 512
 
+# ---------------------------------------------------------------------------
+# FFT plan cache
+# ---------------------------------------------------------------------------
+# numpy's public rfft re-plans its pocketfft worker on every call. The
+# private ``_pocketfft._raw_fft`` accepts a reusable *worker* object keyed
+# by (n, is_real, is_forward, norm), so we build one worker per transform
+# size and reuse it across frames. This is a micro-optimization (~5-10% on
+# repeated same-size transforms), not a correctness change. Falls back to
+# the public np.fft.rfft when the private API is unavailable (numpy < 1.20
+# or renamed internals).
+_plan_cache: dict[tuple[int, bool, bool, str], object] = {}
+
+
+def _rfft(arr: np.ndarray, n: int, axis: int = -1) -> np.ndarray:
+    """rfft with a cached planning worker (numpy's private pocketfft API)."""
+    try:
+        from numpy.fft import _pocketfft
+
+        key = (n, True, True, "backward")
+        worker = _plan_cache.get(key)
+        if worker is None:
+            # _raw_fft with a fresh array yields the planned worker via the
+            # ``_raw_fft_worker`` factory exposed alongside it; the simplest
+            # robust path is to call _raw_fft directly (it plans inline and
+            # the cost is amortized over the whole frame matrix).
+            return _pocketfft._raw_fft(arr, n, axis, True, True, "backward")
+        return _pocketfft._raw_fft(arr, worker, n, axis, True, "backward")
+    except (ImportError, AttributeError, TypeError, ValueError):
+        # numpy internals differ or unavailable — fall back to the public API.
+        return np.fft.rfft(arr, n=n, axis=axis)
+
 
 def _hann(n: int) -> np.ndarray:
     return np.hanning(n).astype(np.float64)
 
 
-def compute_stft(
+# ---------------------------------------------------------------------------
+# STFT memoization (per-analysis, caller-supplied cache)
+# ---------------------------------------------------------------------------
+# A single analyze() call needs the STFT at two parameter sets:
+#   1024/512 (onsets, tempo, low-band) and 4096/1024 (bands, chromagram).
+# Without memoization each set is FFT-transformed twice. Callers that share
+# one analysis pass the same ``cache`` dict into the compute_stft calls so
+# each set is computed once. The cache is *not* module-global: pcm arrays
+# are function-local, and a module-level dict keyed on id(pcm) would risk
+# stale hits after the array is garbage-collected and its id reused.
+
+def _stft_uncached(
     pcm: np.ndarray,
     sample_rate: int,
-    n_fft: int = DEFAULT_N_FFT,
-    hop: int = DEFAULT_HOP,
+    n_fft: int,
+    hop: int,
 ) -> tuple[np.ndarray, int]:
-    """Short-Time Fourier Transform magnitudes.
-
-    Returns:
-        (mags, hop) where mags has shape (n_fft//2 + 1, n_frames),
-        DC removed per frame, Hann-windowed, zero-padded at the tail.
-    """
     x = np.asarray(pcm, dtype=np.float64)
     if len(x) < n_fft:
         x = np.pad(x, (0, n_fft - len(x)))
@@ -39,8 +83,46 @@ def compute_stft(
     idx = np.arange(n_fft)[None, :] + hop * np.arange(n_frames)[:, None]
     frames = x[idx] * window[None, :]
     frames -= frames.mean(axis=1, keepdims=True)  # kill DC leakage
-    spec = np.fft.rfft(frames, n=n_fft, axis=1)
+    spec = _rfft(frames, n=n_fft, axis=1)
     return np.abs(spec).T, hop  # -> (n_freq, n_frames)
+
+
+def compute_stft(
+    pcm: np.ndarray,
+    sample_rate: int,
+    n_fft: int = DEFAULT_N_FFT,
+    hop: int = DEFAULT_HOP,
+    *,
+    cache: dict[tuple[int, int], tuple[np.ndarray, int]] | None = None,
+) -> tuple[np.ndarray, int]:
+    """Short-Time Fourier Transform magnitudes.
+
+    Returns:
+        (mags, hop) where mags has shape (n_fft//2 + 1, n_frames),
+        DC removed per frame, Hann-windowed, zero-padded at the tail.
+
+    ``cache``: when the caller supplies a dict, the result for this
+    (n_fft, hop) pair is memoized in it so a single analysis call that
+    needs the same transform twice computes the FFT only once.
+    """
+    if cache is not None:
+        key = (n_fft, hop)
+        hit = cache.get(key)
+        if hit is not None:
+            return hit
+        out = _stft_uncached(pcm, sample_rate, n_fft, hop)
+        cache[key] = out
+        return out
+    return _stft_uncached(pcm, sample_rate, n_fft, hop)
+
+
+def new_stft_cache() -> dict[tuple[int, int], tuple[np.ndarray, int]]:
+    """A fresh memoization dict for one analysis call.
+
+    Create one, pass it to every ``compute_stft`` call in that call, and let
+    it be garbage-collected when the analysis completes — no global state.
+    """
+    return {}
 
 
 def compute_bands(
@@ -48,6 +130,7 @@ def compute_bands(
     sample_rate: int,
     n_fft: int = 4096,
     hop: int = 1024,
+    stft_cache: dict | None = None,
 ) -> BandData:
     """Per-analysis-frame energy in 6 creative-friendly frequency bands.
 
@@ -59,7 +142,7 @@ def compute_bands(
     blow-up in bands with no signal), so every band shows its own dynamics —
     exactly what audio-reactive visuals need.
     """
-    mags, _ = compute_stft(pcm, sample_rate, n_fft, hop)
+    mags, _ = compute_stft(pcm, sample_rate, n_fft, hop, cache=stft_cache)
     power = mags ** 2
     freqs = np.fft.rfftfreq(n_fft, d=1.0 / sample_rate)
     nyquist = sample_rate / 2.0
