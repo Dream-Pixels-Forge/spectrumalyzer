@@ -1,56 +1,59 @@
-# GOAL: spectrumalyzer — v1.3.0 watch mode pipeline
+# GOAL: spectrumalyzer — v1.4.0 DAW project stubs pipeline
 
 **Status: complete (2026-11-11, released).** Progress: dev-notes/PROGRESS.md.
 
 ## Problem
-Iterative edit sessions (trimming a video bed, auditioning cuts, exporting at
-different fps) re-run `analyze` / `cuts` / `report` by hand every time the
-source changes. The roadmap's v0.4 item ("Watch mode — re-analyze on file
-change") is the fix: watch a file, and when its mtime + size change, re-run
-the analysis and re-export — no re-decode-and-DSP if nothing actually changed
-(the v1.1 cache already makes a no-op re-export instant).
+Composers and motion designers sync visuals to music in a DAW. The v1.0.0
+cut-list (CSV/JSON) is data-only: a human re-types times into the DAW.
+Roadmap v0.4 item: "Ableton Live / FLP / REAPER project stubs — markers as
+tempo-warped project items." The fix: generate openable project stubs with
+markers pre-embedded from the analysis (bars, sections, key, BPM) — no CSV
+middleman for the DAW round-trip.
 
-## Design (decision, documented)
-- **Polling, not inotify.** `WatchSession.poll()` compares the file's
-  `(st_mtime_ns, st_size)` against the last-seen key. On change it re-analyzes
-  (through the v1.1 precomputed cache, so unchanged content is a free hit) and
-  re-exports to the same output path. Polling is portable (Windows/macOS/Linux,
-  no `watchdog` dependency) and is the right tool for a CLI loop that the user
-  Ctrl-C's.
-- **No new dependencies.** Pure stdlib polling; reuses `analyze_cached` (v1.1)
-  so a file that only touched mtime but not content is still a cache hit.
-- **Callback seam.** `WatchSession` takes an optional `on_change(result, hit)`
-  hook so the same engine drives the CLI loop, an MCP tool, and tests without
-  importing any CLI/printing code.
+## Design (decisions, documented)
+- **Pure text generators, no DAW dependency.** REAPER's `.RPP` and Ableton's
+  `.als` are text formats; we emit minimal valid project files with an audio
+  item (source path) + markers on a track. Testable without a DAW install.
+- **FLP is binary + proprietary schema** — skipped, documented why (stays a
+  later item with a real test vector).
+- **DaVinci Resolve scripting** — deferred to v1.5 (needs a running Resolve
+  instance; cannot be exercised headlessly here).
+- **Markers land on the v0.7 bar grid** (downbeats, labeled `BAR N`), plus
+  section markers (`SECTION <label>`). No bars (pulseless) → 0 markers.
+- **`bpm is None` / no bars → 120.0 tempo fallback** (documented in `daw.py`
+  and docs).
 
-## Goal (measurable)
-1. **Watch engine** (`watch.py`, pure, testable):
-   - [x] `WatchSession(path, out_path, *, fps=None, formats=("json",), ...)`
-   - [x] `.poll() -> bool` — returns True when the file changed and was
-         re-exported; False when unchanged.
-   - [x] `.run(interval=1.0, max_polls=None, stop_event=None)` — the blocking
-         loop; returns the number of re-analyses performed.
-   - [x] `change_key(path) -> (mtime_ns, size)` — the comparison tuple,
-         exported for tests and the cache-key parity check.
-2. **CLI** `watch`: `spectrumalyzer watch AUDIO [--interval S] [--format X,Y]
-   [--fps N] [-o OUT]` — re-analyze + re-export on every change, one line per
-   change to stderr, Ctrl-C to stop.
-3. **MCP tool** `watch_file` — poll-based (one poll per call, non-blocking) so
-   an agent can drive it: returns `{"changed": bool, "cacheHit": bool, ...}`.
-4. **Tests** — TDD:
-   - [x] `change_key` reflects mtime + size
-   - [x] `poll()` unchanged → False, no re-export
-   - [x] `poll()` after file change → True, re-export written
-   - [x] `run()` with a stop_event + fake clock does the right number of polls
-         (injectable `sleep_fn`, no sleep-dependence in CI)
-   - [x] `on_change` callback fires exactly on changes
-   - [x] Full suite green (191 total), ruff clean
-5. **Docs**: [x] CHANGELOG v1.3.0, [x] ROADMAP watch item struck, [x] PROGRESS
-6. **Release**: bump, tag v1.3.0, PyPI, three-way gate
+## Goal (measurable) — all shipped
+1. **`exporters/daw.py`**:
+   - [x] `export_reaper(result, source_path, out_path)` → `.RPP` with tempo =
+         detected BPM, PPQ 480, audio item at t=0, BAR/SECTION markers, valid
+         `<REAPER_PROJECT>` structure
+   - [x] `export_ableton(result, source_path, out_path)` → `.als` with
+         tempoMap entry, audio clip (source path), marker track; documented
+         minimal subset
+   - [x] Both return the written `Path`; raise `FileNotFoundError` on bad input
+2. **CLI**: [x] `spectrumalyzer daw AUDIO --da reaper|ableton [-o OUT]`
+3. **Tests** — TDD:
+   - [x] 11 new tests (structure, tempo, marker count, media item, pulseless
+         fallback, section markers, error case, CLI parsing, package exports)
+   - [x] Full suite green (202 total), ruff clean
+4. **Docs**: [x] CHANGELOG v1.4.0, [x] ROADMAP DAW stub item struck (shipped
+   note), [x] PROGRESS, [x] GOAL
+5. **Release**: [x] bump 1.4.0, tag v1.4.0, PyPI, three-way gate + wheel
+   verify (`daw.py` present)
 
 ## Anti-drift
-- No new dependencies (no watchdog / inotify). Polling is the documented
-  choice; inotify is a v2 refinement if latency matters.
-- Watch reuses the v1.1 `analyze_cached` path: a touch that bumps mtime but
-  leaves content identical is still a cache hit (instant).
-- `run()` must be injectable with a fake clock so tests don't sleep in CI.
+- No new dependencies (pure stdlib text emit; numpy only for any math).
+- FLP and Resolve scripting are documented deferrals, not silent skips.
+- Markers come from the v0.7 bar grid (downbeats); pulseless → 0 markers.
+- BPM None → 120.0 fallback.
+- Tests assert on file structure, no DAW install required.
+
+## Verification
+1. `PYTHONPATH=".pydeps:src:tests" python3 -m pytest tests/` → 202 green
+2. `PYTHONPATH=".pydeps:src" python3 -m ruff check src/ tests/` → clean
+3. Generated real `.RPP` + `.als` from a 120-BPM track, inspected by eye
+4. Bump 1.4.0 → tag → release → three-way gate + wheel check
+
+## Estimated Effort
+~1 hour: 2 exporters + CLI + 11 tests + release cycle. **Shipped 2026-11-11.**

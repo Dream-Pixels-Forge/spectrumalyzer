@@ -81,8 +81,12 @@
       export format (stable EDL CSV), the `cuts` CLI subcommand, and a
       `generate_cut_list` MCP tool. Pure selection over the existing analysis
       — no new DSP, no new dependencies.
-- [ ] **Ableton Live / FLP / REAPER project stubs** — markers as tempo-warped
-      project items for composers syncing visuals to music.
+- [x] **Ableton Live / FLP / REAPER project stubs** — markers as tempo-warped
+       project items for composers syncing visuals to music. **Shipped in
+       v1.4.0** as REAPER `.RPP` + Ableton `.als` stubs (pure text, openable,
+       BAR/SECTION markers from the v0.7 bar grid, tempo = detected BPM).
+       **FLP (binary/proprietary) not shipped** — stays a later item;
+       **DaVinci Resolve scripting** is a separate v1.5 item.
 - [ ] **DaVinci Resolve scripting** (DaVinci API) — direct timeline marker
       injection, no CSV middleman.
 - [ ] **Watch mode** — re-analyze on file change for iterative edit sessions. (shipped v1.3.0)

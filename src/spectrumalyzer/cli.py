@@ -284,6 +284,28 @@ def build_parser() -> argparse.ArgumentParser:
     )
     p_watch.add_argument("-q", "--quiet", action="store_true", help="Suppress progress output")
 
+    # ---- daw ---------------------------------------------------------------
+    p_daw = sub.add_parser(
+        "daw",
+        help="Generate an openable DAW project stub (REAPER .RPP / Ableton .als)",
+        description=(
+            "Emit a minimal DAW project file with the analysis pre-embedded: "
+            "project tempo = detected BPM, an audio item for the source at t=0, "
+            "and BAR/SECTION markers from the v0.7 bar grid. "
+            "FLP (binary) and DaVinci Resolve scripting are later items."
+        ),
+    )
+    p_daw.add_argument("audio", help="Audio file (already analyzed, or will be)")
+    p_daw.add_argument(
+        "--da", choices=["reaper", "ableton"], required=True,
+        help="Target DAW: reaper (.RPP) or ableton (.als)",
+    )
+    p_daw.add_argument(
+        "-o", "--output", default=None,
+        help="Output file path (default: <audio stem>.rpp / .als next to source)",
+    )
+    p_daw.add_argument("-q", "--quiet", action="store_true", help="Suppress progress output")
+
     return parser
 
 
@@ -673,6 +695,33 @@ def cmd_watch(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_daw(args: argparse.Namespace) -> int:
+    from spectrumalyzer.exporters.daw import export_ableton, export_reaper
+
+    audio = Path(args.audio)
+    if not audio.exists():
+        print(f"Error: file not found: {audio}", file=sys.stderr)
+        return 1
+
+    out = args.output or str(audio.with_suffix(".rpp" if args.da == "reaper" else ".als"))
+    _log(args.quiet, f"Analyzing {audio.name} …")
+    from spectrumalyzer.api import analyze
+
+    result = analyze(str(audio))
+    n_bars = len(result.bars.bars) if result.bars else 0
+    _log(args.quiet, f"  bpm={result.bpm:.1f} bars={n_bars}")
+    try:
+        if args.da == "reaper":
+            written = export_reaper(result, str(audio), out)
+        else:
+            written = export_ableton(result, str(audio), out)
+    except FileNotFoundError as exc:
+        print(f"Error: {exc}", file=sys.stderr)
+        return 1
+    _log(args.quiet, f"{args.da} project written: {written}")
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
@@ -698,6 +747,8 @@ def main(argv: list[str] | None = None) -> int:
         return cmd_cuts(args)
     if args.command == "watch":
         return cmd_watch(args)
+    if args.command == "daw":
+        return cmd_daw(args)
     parser.print_help()
     return 1
 

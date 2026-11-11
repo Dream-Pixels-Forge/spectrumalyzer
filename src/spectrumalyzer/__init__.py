@@ -19,6 +19,7 @@ from spectrumalyzer.analysis.cache import CacheKey, CacheStore, analyze_cached
 from spectrumalyzer.analysis.cutlist import Cut, CutList, generate_cut_list
 from spectrumalyzer.analysis.harmony import detect_key
 from spectrumalyzer.api import analyze
+from spectrumalyzer.exporters.daw import export_ableton, export_reaper
 from spectrumalyzer.model import AnalysisResult, Bar, Bars, Beat, ImpactTiers, KeyResult, Section
 from spectrumalyzer.trimmer import TrimSelection, select_trim_window, trim, trim_audio
 from spectrumalyzer.watch import WatchSession, change_key
@@ -43,6 +44,8 @@ __all__ = [
     "change_key",
     "detect_bars",
     "detect_key",
+    "export_ableton",
+    "export_reaper",
     "generate_cut_list",
     "impact_tiers",
     "select_trim_window",

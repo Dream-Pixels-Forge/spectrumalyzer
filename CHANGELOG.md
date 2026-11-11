@@ -4,6 +4,30 @@ All notable changes to spectrumalyzer are documented here.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 versioning follows [Semantic Versioning](https://semver.org/).
 
+## [1.4.0] — 2026-11-11
+
+### Added
+- **DAW project stubs** (`exporters/daw.py`) — `export_reaper(result,
+  source_path, out_path)` writes a minimal openable REAPER `.RPP` (project
+  tempo = detected BPM, PPQ 480, one audio item at t=0, BAR/SECTION markers
+  on the v0.7 bar grid); `export_ableton(...)` writes a minimal Ableton Live
+  `.als` (tempoMap entry at the detected BPM, one audio clip referencing the
+  source, marker track with `BAR N` / `SECTION <label>` entries). Pure text
+  generators — no DAW install needed to produce or open them.
+- **CLI** `spectrumalyzer daw AUDIO --da reaper|ableton [-o OUT]` — analyze
+  (or reuse) then emit the target DAW stub in one command.
+- **11 new tests** (`tests/test_daw.py`) — structure, tempo, marker count,
+  media item, pulseless fallback (120.0 BPM), section markers, error on
+  missing source, CLI parsing, package-root exports. 202 total green,
+  ruff clean.
+
+### Notes
+- `bpm is None` / no bars → 120.0 tempo fallback (documented in `daw.py`).
+- **FLP is NOT shipped** (binary, proprietary — needs a real test vector);
+  **DaVinci Resolve scripting** is a separate v1.5 item (requires a running
+  Resolve instance). Both documented in ROADMAP.
+- `export_reaper`, `export_ableton` are exported from the package root.
+
 ## [1.3.0] — 2026-11-11
 
 ### Added

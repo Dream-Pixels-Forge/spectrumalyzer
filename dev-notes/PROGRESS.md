@@ -5,7 +5,24 @@
 - Branch: `main`
 - Started: 2026-10-11
 - Current Phase: 3 (Engineer)
-- Status: **shipped** — v1.3.0 watch mode, live on PyPI (2026-11-11)
+- Status: **shipped** — v1.4.0 DAW project stubs, live on PyPI (2026-11-11)
+
+## v1.4.0 DAW Project Stubs (2026-11-11)
+- [x] `exporters/daw.py` — `export_reaper()` (minimal openable `.RPP`: tempo =
+      detected BPM, PPQ 480, audio item at t=0, BAR/SECTION markers from the
+      v0.7 bar grid) + `export_ableton()` (minimal `.als`: tempoMap entry,
+      audio clip, marker track). Pure text, no DAW dependency.
+- [x] `bpm is None` / no bars → 120.0 tempo fallback (documented)
+- [x] FLP deliberately NOT shipped (binary/proprietary — documented in
+      ROADMAP); DaVinci Resolve scripting deferred to v1.5 (needs a running
+      Resolve instance)
+- [x] CLI `spectrumalyzer daw AUDIO --da reaper|ableton [-o OUT]`
+- [x] Package-root exports: `export_reaper`, `export_ableton`
+- [x] 11 new tests (202 total green, ruff clean)
+- [x] End-to-end: generated `.RPP` + `.als` from a real 120-BPM track
+      (9 bars, 4 sections, tempo/marker structure verified by eye)
+- [x] Release v1.4.0 (tag v1.4.0 → trusted-publishing workflow → PyPI live
+      2026-11-11; three-way check: pyproject == tag == release == PyPI == 1.4.0)
 
 ## v1.3.0 Watch Mode (2026-11-11)
 - [x] `watch.py` — `change_key(path) -> (mtime_ns, size)` +
