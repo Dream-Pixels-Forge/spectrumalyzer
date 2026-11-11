@@ -1,53 +1,46 @@
-# GOAL: spectrumalyzer — v1.0.0 cut-list generator pipeline
+# GOAL: spectrumalyzer — v1.1.0 precomputed analysis cache pipeline
 
-**Status: active.** Started 2026-11-08. Progress: dev-notes/PROGRESS.md.
+**Status: active.** Started 2026-11-11. Progress: dev-notes/PROGRESS.md.
 
 ## Problem
-Creative users want an edit-decision list, not raw markers: "give me the
-cut points for a 4-beat montage on the downbeats" or "the loudest section,
-cut every 4 beats." Today they have to divide the beat grid themselves and
-eyeball the sections. Now that bars, impact tiers, and section energy all
-exist, a cut-list generator is trivial pure logic — and it's the
-v0.4 roadmap item ("Cut-list generator — `spectrumalyzer cuts track.mp3
---every 4beats --section peak` → edit-decision CSV/JSON for Premiere/Resolve
-scripting").
+Every `analyze` / `report` / `cuts` run decodes the file (ffmpeg) and runs
+the full DSP. Re-exporting the same track at a different fps, or re-running
+a pipeline, re-does all of it. The roadmap's v0.5 item ("precomputed cache
+keyed by file hash — instant re-exports at different fps without
+re-analysis") is the fix: cache the analysis result, keyed by
+mtime + size + package version, under `~/.cache/spectrumalyzer/`.
 
 ## Goal (measurable)
-A `cuts` command + pure-logic module that turns an analysis into a
-deterministic, exportable edit-decision list.
-
-1. **Cut-list engine** (`analysis/cutlist.py`, pure, testable without ffmpeg):
-   - [x] `Cut` dataclass: `time` (s), `frame` (optional), `in_time`/`out_time`
-         (a clip window), `label`, `tier`, `section`, `energy`, `reason`
-   - [x] `generate_cut_list(result, every_beats=4, section=None, tier=None,
-         clip_len=4.0, fps=None) -> list[Cut]`
-     - every-N-beats cadence snapped to the beat grid
-     - `section="peak"` restricts cuts to that section's time range
-     - `tier="downbeat"` restricts to downbeat beats (4/4 every = bar starts)
-     - optional clip windows (`clip_len`) for montage-style "hold this segment"
-   - [x] `CutList` dataclass with `to_dict()` → JSON export
-2. **New `cuts` export format** — edit-decision CSV (Premiere/Resolve
-   marker-injector + spreadsheet columns: index, in, out, time, frame, tier,
-   section, reason)
-3. **CLI** — `spectrumalyzer cuts AUDIO [--every N] [--section LABEL]
-   [--tier downbeat] [--clip-len S] [--fps N] [-o cuts.csv]`
-4. **API** — `generate_cut_list` + `CutList`/`Cut` public at package root
-5. **MCP** — `generate_cut_list` tool (returns JSON, no file writes unless
-   requested)
-6. **Tests** — TDD, deterministic synthetic beat-locked track:
-   - [x] `--every 4` on a 120 BPM track → cuts on bar starts, count = beats/4
-   - [x] `section="peak"` restricts to the loud section's range
-   - [x] `tier="downbeat"` → exactly the bar-start beats
-   - [x] `clip_len` produces in/out windows of the requested length
-   - [x] no grid (pulseless) → empty list, no crash
-   - [x] `to_dict`/CSV shape stable (column order asserted)
-   - [x] Full suite green (141 + new)
-7. **Docs**: CHANGELOG v1.0.0 + ROADMAP strike + PROGRESS — DONE
-8. **Release**: v1.0.0 bump, tag, PyPI, three-way gate — DONE 2026-11-08
-   (three-way: pyproject == tag == PyPI == 1.0.0, wheel verified)
+1. **Cache layer** (`analysis/cache.py`, pure, testable):
+   - [x] `CacheKey.from_file(path, version, sample_rate)` — stable hash of
+         (mtime ns, size, version-major, sample_rate)
+   - [x] `CacheStore.load(key) / save(key, result)` — JSON on disk under
+         `~/.cache/spectrumalyzer/` (overridable via `SPECTRUMALYZER_CACHE_DIR`
+         for tests), one file per key, atomic write
+   - [x] `AnalysisResult.from_dict()` — reconstruct a full result (beats,
+         onsets, sections, bars, key, impact tiers) from JSON
+   - [x] Cache hit rule: same mtime+size+version-major+sample_rate; any
+         change → miss. Cache does NOT store embedding output (`--embed`
+         still runs fresh each time — it's an optional model call).
+2. **API**:
+   - [x] `analyze_cached(path, ...)` — check cache first, decode+analyze on
+         miss and write it back. Returns `(result, cache_hit: bool)`.
+3. **CLI**: `analyze` reads the cache by default; `--no-cache` forces
+   re-analysis; prints `cache: hit/miss` in the summary
+4. **Tests** — TDD:
+   - [x] `from_dict` round-trips every model field
+   - [x] same key + hit → no ffmpeg, returns cached result
+   - [x] file mtime/size change → miss
+   - [x] version-major bump → miss (old caches never silently apply)
+   - [x] store is atomic + doesn't crash on corrupt cache file (falls back
+         to re-analysis)
+   - [x] Full suite green (157 + 15 = 172)
+5. **Docs**: CHANGELOG v1.1.0, ROADMAP strike the cache item, PROGRESS
+6. **Release**: bump, tag v1.1.0, PyPI, three-way gate
 
 ## Anti-drift
-- Cut-list is pure selection logic over existing analysis outputs — no new
-  DSP, no new dependencies. If this drifts into actual media cutting /
-  scripting automation for a specific NLE, stop and re-check. The output is
-  data (CSV/JSON) that NLEs can consume, not NLE-specific code generation.
+- Cache is keyed on mtime+size, NOT content hash (cheap; content-hash is a
+  v2 refinement if collisions matter in the wild). Document that.
+- No new dependencies. The cache is plain JSON + stdlib hashing.
+- `analyze_cached` never mutates the cache entry for `--embed` — embeddings
+  are model-dependent and re-run.

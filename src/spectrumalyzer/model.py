@@ -371,3 +371,108 @@ class AnalysisResult:
             "beatTimes": [round(b.time, 4) for b in self.beat_grid],
             "metadata": dict(self.metadata),
         }
+
+    @classmethod
+    def from_dict(cls, d: dict[str, Any]) -> AnalysisResult:
+        """Reconstruct an AnalysisResult from ``to_dict`` JSON (inverse of to_dict).
+
+        Used by the precomputed analysis cache: a cached file stores the full
+        dict, and a cache hit rebuilds the result without re-decoding or
+        re-running the DSP. Missing sub-structures (bars/key/tiers) are
+        reconstructed when present, None otherwise.
+        """
+        f = d.get("fps")
+
+        def _beats(key: str) -> list[Beat]:
+            return [
+                Beat(
+                    time=b["time"],
+                    strength=b.get("strength", 1.0),
+                    frame=b.get("frame"),
+                    tier=b.get("tier"),
+                )
+                for b in d.get(key, [])
+            ]
+
+        beats = _beats("beats")
+        onsets = _beats("onsets")
+
+        sections = [
+            Section(start=s["start"], end=s["end"],
+                    energy=s.get("energy", 0.0), label=s.get("label", ""))
+            for s in d.get("sections", [])
+        ]
+
+        bars: Bars | None = None
+        if "bars" in d:
+            bars = Bars(
+                bars=[
+                    Bar(index=b["index"],
+                        beat_indices=list(range(b["index"] * 4, b["index"] * 4 + b.get("beats", 4))),
+                        downbeat_time=b.get("time", b.get("start", 0.0)),
+                        start_time=b.get("start", b.get("time", 0.0)),
+                        end_time=b.get("end", 0.0),
+                        downbeat_frame=b.get("downbeatFrame", b.get("frame")),
+                        frame=b.get("startFrame", b.get("frame")),
+                        end_frame=b.get("endFrame"))
+                    for b in d["bars"]
+                ],
+                confidence=d.get("downbeatConfidence", 0.0),
+            )
+
+        key: KeyResult | None = None
+        if d.get("key") not in (None, "unknown"):
+            key = KeyResult(
+                key=d["key"],
+                confidence=d.get("keyConfidence", 0.0),
+                camelot=d.get("camelot"),
+                palette=d.get("palette"),
+                chroma=d.get("chroma", []),
+            )
+
+        impact_tiers: ImpactTiers | None = None
+        if "impactTiers" in d:
+            it = d["impactTiers"]
+            impact_tiers = ImpactTiers(
+                accent_quantile=it.get("accentQuantile", 0.75),
+                counts=it.get("counts", {}),
+            )
+
+        bands: BandData | None = None
+        if d.get("bands") is not None:
+            b = d["bands"]
+            bands = BandData(
+                sample_rate=d.get("sampleRate", 44100),
+                hop=int(1 / b["frameDuration"]) if b.get("frameDuration") else 1024,
+                matrix=b.get("matrix", []),
+            )
+
+        r = cls(
+            path=d.get("metadata", {}).get("path", ".") or ".",
+            duration=d.get("duration", 0.0),
+            sample_rate=d.get("sampleRate", 44100),
+            bpm=d.get("bpm", 0.0),
+            bpm_confidence=d.get("bpmConfidence", 0.0),
+            beat_grid=beats,
+            onsets=onsets,
+            sections=sections,
+            bars=bars,
+            key=key,
+            impact_tiers=impact_tiers,
+            bands=bands,
+            centroid=d.get("centroid", []),
+            loudness=d.get("loudness", []),
+            waveform_peaks=d.get("waveformPeaks", []),
+            loudness_db=d.get("loudnessDb"),
+            fps=f,
+            metadata=d.get("metadata", {}),
+        )
+        # rebuild beat frames from fps when the dict carried frames
+        if f:
+            for b in r.beat_grid:
+                if b.frame is None:
+                    b.frame = time_to_frame(b.time, f)
+            for b in r.onsets:
+                if b.frame is None:
+                    b.frame = time_to_frame(b.time, f)
+        return r

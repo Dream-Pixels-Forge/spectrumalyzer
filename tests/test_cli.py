@@ -60,3 +60,34 @@ def test_formats_command(capsys):
 def test_missing_file_exits_nonzero(tmp_path):
     rc = main(["analyze", str(tmp_path / "nope.mp3")])
     assert rc != 0
+
+
+def test_analyze_cache_hit_on_second_run(click_120, tmp_path, monkeypatch):
+    """First analyze writes the cache; a second run with the same flags must be a hit."""
+    monkeypatch.setenv("SPECTRUMALYZER_CACHE_DIR", str(tmp_path / "cache"))
+    out1 = tmp_path / "first.json"
+    out2 = tmp_path / "second.json"
+    # first run — miss, writes cache
+    assert main(["analyze", str(click_120), "-o", str(out1), "--fps", "30", "--quiet"]) == 0
+    # second run — hit, still writes valid output
+    assert main(["analyze", str(click_120), "-o", str(out2), "--fps", "30", "--quiet"]) == 0
+    d1 = json.loads(out1.read_text())
+    d2 = json.loads(out2.read_text())
+    assert d1["bpm"] == d2["bpm"]
+    assert d1["beats"] == d2["beats"]
+
+
+def test_analyze_no_cache_always_reanalyzes(click_120, tmp_path, monkeypatch):
+    """--no-cache must never consult or write the cache."""
+    monkeypatch.setenv("SPECTRUMALYZER_CACHE_DIR", str(tmp_path / "cache"))
+    # prime the cache
+    out = tmp_path / "warm.json"
+    assert main(["analyze", str(click_120), "-o", str(out), "--fps", "30", "--quiet"]) == 0
+    assert (tmp_path / "cache").glob("*.json")  # cache entry exists
+    # now with --no-cache the run must still succeed and produce the same data
+    out2 = tmp_path / "cold.json"
+    assert main(["analyze", str(click_120), "-o", str(out2), "--fps", "30",
+                 "--no-cache", "--quiet"]) == 0
+    d_warm = json.loads(out.read_text())
+    d_cold = json.loads(out2.read_text())
+    assert d_warm["bpm"] == d_cold["bpm"]

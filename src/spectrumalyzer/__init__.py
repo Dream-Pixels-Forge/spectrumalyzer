@@ -15,6 +15,7 @@ CLI:
 
 from spectrumalyzer._version import __version__
 from spectrumalyzer.analysis.beats import detect_bars, impact_tiers
+from spectrumalyzer.analysis.cache import CacheKey, CacheStore, analyze_cached
 from spectrumalyzer.analysis.cutlist import Cut, CutList, generate_cut_list
 from spectrumalyzer.analysis.harmony import detect_key
 from spectrumalyzer.api import analyze
@@ -26,6 +27,8 @@ __all__ = [
     "Bar",
     "Bars",
     "Beat",
+    "CacheKey",
+    "CacheStore",
     "Cut",
     "CutList",
     "ImpactTiers",
@@ -34,6 +37,7 @@ __all__ = [
     "TrimSelection",
     "__version__",
     "analyze",
+    "analyze_cached",
     "detect_bars",
     "detect_key",
     "generate_cut_list",

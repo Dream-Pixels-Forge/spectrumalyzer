@@ -4,6 +4,39 @@ All notable changes to spectrumalyzer are documented here.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 versioning follows [Semantic Versioning](https://semver.org/).
 
+## [1.1.0] — 2026-11-11
+
+### Added
+- **Precomputed analysis cache** — the roadmap v0.5 item: re-exports and
+  re-runs of the same file skip the full DSP on a cache hit:
+  - `analysis/cache.py` — `CacheKey` (stable hash of
+    `(mtime_ns, size, major-version, sample_rate)`), `CacheStore`
+    (atomic JSON-on-disk writes under `~/.cache/spectrumalyzer/` or
+    `$SPECTRUMALYZER_CACHE_DIR`), `analyze_cached()` returning
+    `(result, cache_hit: bool)`.
+  - `AnalysisResult.from_dict()` — full inverse of `to_dict()`; a cache
+    hit rebuilds the complete result (beats, bars, key, tiers, sections,
+    bands, centroid, loudness, waveform) without re-decoding or
+    re-running DSP.
+  - `CacheKey.from_file` invalidates on any mtime or size change, on
+    package-major-version bump, or sample-rate change; a corrupt cache
+    file is treated as a miss (never a crash).
+  - `--embed` output is never cached (model-dependent, re-run each time).
+  - Package-root exports: `CacheKey`, `CacheStore`, `analyze_cached`.
+- **CLI** `analyze` reads the cache by default; `--no-cache` forces a
+  full re-analysis and skips the cache entirely. A `cache: hit/miss`
+  line is printed to stderr when not quiet.
+
+### Changed
+- `cmd_analyze` now calls `analyze_cached` instead of `analyze` directly;
+  cached runs are instant (no ffmpeg decode, no DSP) while the result is
+  byte-identical to a fresh analysis.
+
+- 15 new cache tests + 2 new CLI tests (172 total green, ruff clean).
+  Cache key stability (mtime/size/version/sample-rate), round-trip,
+  corrupt-file fallback, `use_cache=False`, `analyze_cached`
+  hit/miss/file-change, and the CLI `--no-cache` path are all covered.
+
 ## [1.0.0] — 2026-11-08
 
 ### Added

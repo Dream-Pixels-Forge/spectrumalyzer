@@ -125,6 +125,10 @@ def build_parser() -> argparse.ArgumentParser:
         "--embed", action="store_true",
         help="Add natural-language description + mood tags (requires local embedding model: spectrumalyzer model pull)",
     )
+    p_analyze.add_argument(
+        "--no-cache", action="store_true",
+        help="Skip the precomputed analysis cache and re-analyze from scratch",
+    )
     p_analyze.add_argument("-q", "--quiet", action="store_true", help="Suppress progress output")
 
     # ---- report ----------------------------------------------------------
@@ -270,7 +274,7 @@ def _resolve_format(value: str) -> list[str]:
 
 
 def cmd_analyze(args: argparse.Namespace) -> int:
-    from spectrumalyzer.api import analyze
+    from spectrumalyzer.analysis.cache import analyze_cached
 
     audio = Path(args.audio)
     if not audio.exists():
@@ -286,9 +290,11 @@ def cmd_analyze(args: argparse.Namespace) -> int:
         )
         return 1
 
+    use_cache = not args.no_cache
     _log(args.quiet, f"Analyzing {audio.name} …")
-    result = analyze(
+    result, cache_hit = analyze_cached(
         str(audio),
+        use_cache=use_cache,
         fps=args.fps,
         bands=not args.no_bands,
         sections=not args.no_sections,
@@ -297,6 +303,7 @@ def cmd_analyze(args: argparse.Namespace) -> int:
         min_bpm=args.min_bpm,
         max_bpm=args.max_bpm,
     )
+    _log(args.quiet, f"cache: {'hit' if cache_hit else 'miss'}")
     _log(
         args.quiet,
         f"BPM {result.bpm:.1f} (confidence {result.bpm_confidence:.2f}) · "

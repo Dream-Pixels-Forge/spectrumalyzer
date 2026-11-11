@@ -93,8 +93,11 @@
 - [ ] **GPU path** (optional `cupy` extra) for hour-long sets.
 - [ ] **Web/WASM build** (Pyodide) — in-browser analysis for web-based editors
       (Remotion Studio plugins, HyperFrames Studio).
-- [ ] **Precomputed cache** (`.spectralyzer-cache.json`) keyed by file hash —
-      instant re-exports at different fps without re-analysis.
+- [x] **Precomputed cache** — instant re-exports at different fps without
+      re-analysis. **Shipped in v1.1.0**: `CacheKey` (mtime_ns+size+major-version+sample_rate),
+      `CacheStore` (atomic JSON under `~/.cache/spectrumalyzer/`),
+      `analyze_cached()` → `(result, cache_hit)`; CLI `analyze` reads the
+      cache by default, `--no-cache` forces a fresh run.
 
 ### v1.0 — polish
 - [ ] Confidence-based warnings ("low confidence — try --min-bpm hints")

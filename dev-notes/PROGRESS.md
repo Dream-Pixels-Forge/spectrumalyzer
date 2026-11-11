@@ -5,7 +5,29 @@
 - Branch: `main`
 - Started: 2026-10-11
 - Current Phase: 3 (Engineer)
-- Status: **shipped** — v1.0.0 cut-list generator, live on PyPI (2026-11-08)
+- Status: **shipped** — v1.1.0 precomputed analysis cache, live on PyPI (2026-11-11)
+
+## v1.1.0 Precomputed Analysis Cache (2026-11-11)
+- [x] `analysis/cache.py` — `CacheKey` (sha1 of `mtime_ns:size:major:sr`),
+      `CacheStore` (atomic JSON under `~/.cache/spectrumalyzer/` or
+      `$SPECTRUMALYZER_CACHE_DIR`), `analyze_cached()` → `(result, cache_hit)`
+- [x] `AnalysisResult.from_dict()` — full inverse of `to_dict()`; a cache hit
+      rebuilds the complete result (beats, onsets, sections, bars, key,
+      impact tiers, bands, centroid, loudness, waveform_peaks) without
+      re-decoding or re-running DSP
+- [x] Cache key invalidation: mtime or size change → miss; package-major
+      version bump → miss; sample-rate change → miss; corrupt cache file →
+      miss (never crash)
+- [x] `--embed` output is never cached (model-dependent); `CacheStore.save()`
+      injects the source path into `metadata` so a hit can restore
+      `result.path`
+- [x] `cmd_analyze` now calls `analyze_cached` (cache on by default);
+      new `--no-cache` flag forces a fresh run; `cache: hit/miss` line
+      printed to stderr (suppressed by `-q`)
+- [x] Package-root exports: `CacheKey`, `CacheStore`, `analyze_cached`
+- [x] 15 new cache tests + 2 new CLI tests (172 total green, ruff clean)
+- [x] Release v1.1.0 (tag v1.1.0 → trusted-publishing workflow → PyPI live
+      2026-11-11; three-way check: pyproject == tag == PyPI == 1.1.0)
 
 ## v1.0.0 Cut-List Generator (2026-11-08)
 - [x] `analysis/cutlist.py` — `generate_cut_list(result, every_beats,
